@@ -10,12 +10,12 @@ Process to generate the charts:
 4. Helm manifests are generated using `helm template` + Helm `values.yaml`.
 5. Dyff of Ytt manifests vs Helm manifests is performed where each Ytt/Helm manifest pair needs to be canonically identical.
 
-To be sure, if you look at the shell script to produce the charts you will cry. As noted in the script, I'm not sure if the script will continue to be used once verified to be working. But long term it may be better to always mechanically create the charts. Not sure.
+To be sure, if you look at the shell script to produce the charts you will cry. As noted in the script, I'm not sure if the script will continue to be used once verified to be working. But long term it may be better to always mechanically create the charts from the Ytt sources. Not sure.
 
 ## Todo
 
 1. Run the local Pinniped integration test. In theory this should work given the manifests produced by the two paths are identical (save for one).
-2. Figure out why the remaining single manifest does not register as canonically identical (may need raise and issue or PR for Dyff). I have added to an existing issue here: https://github.com/homeport/dyff/issues/171
+2. Figure out why the remaining single manifest does not register as canonically identical. I have added to an existing issue with Dyff here: https://github.com/homeport/dyff/issues/171
 3. Determine the structure of the Helm `values.yaml` files for each chart. This definitely needs work, I just plugged in values to achieve parity in the comparison.
 
 ## Assumptions for Helm chart generation
