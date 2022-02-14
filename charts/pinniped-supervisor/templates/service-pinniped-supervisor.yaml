@@ -1,0 +1,58 @@
+{{- if eq .Values.service.type "clusterIP" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinniped-supervisor-clusterip
+  namespace: '{{ .Release.Namespace }}'
+  labels:
+    app: pinniped-supervisor
+  annotations:
+    kapp.k14s.io/disable-default-label-scoping-rules: ""
+spec:
+  type: ClusterIP
+  selector:
+    deployment.pinniped.dev: supervisor
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+{{- else if eq .Values.service.type "nodePort" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinniped-supervisor-nodeport
+  namespace: '{{ .Release.Namespace }}'
+  labels:
+    app: pinniped-supervisor
+  annotations:
+    kapp.k14s.io/disable-default-label-scoping-rules: ""
+spec:
+  type: NodePort
+  selector:
+    deployment.pinniped.dev: supervisor
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+{{- else if eq .Values.service.type "loadBalancer" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinniped-supervisor-loadbalancer
+  namespace: '{{ .Release.Namespace }}'
+  labels:
+    app: pinniped-supervisor
+  annotations:
+    kapp.k14s.io/disable-default-label-scoping-rules: ""
+spec:
+  type: LoadBalancer
+  selector:
+    deployment.pinniped.dev: supervisor
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+{{- end }}

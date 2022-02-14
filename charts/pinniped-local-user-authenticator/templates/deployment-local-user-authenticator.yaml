@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-user-authenticator
+  namespace: '{{ .Release.Namespace }}'
+  labels:
+    app: local-user-authenticator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: local-user-authenticator
+  template:
+    metadata:
+      labels:
+        app: local-user-authenticator
+    spec:
+      securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+      serviceAccountName: local-user-authenticator
+      containers:
+        - name: local-user-authenticator
+          image: '{{ template "image" .Values.image }}'
+          imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+          command:
+            - local-user-authenticator

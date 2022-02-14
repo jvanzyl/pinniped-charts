@@ -1,0 +1,23 @@
+# -------------------------------------------------------------------------------------------------
+# Local User Authenticator
+# -------------------------------------------------------------------------------------------------
+
+replicas: 1
+
+# https://blog.andyserver.com/2021/09/adding-image-digest-references-to-your-helm-charts/
+image:
+  registry: "projects.registry.vmware.com"
+  repository: "pinniped/pinniped-server"
+  version: "latest"
+  #version: "sha256:f3c4fdfd3ef865d4b97a1fd295d94acc3f0c654c46b6f27ffad5cf80216903c8"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# https://stackoverflow.com/questions/63838705/what-is-the-difference-between-fullnameoverride-and-nameoverride-in-helm
+# nameOverride: ""
+# fullnameOverride: ""
+
+securityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+

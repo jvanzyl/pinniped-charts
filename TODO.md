@@ -1,0 +1,24 @@
+# TODO
+
+- [ ] modify the existing integrate tests to optionally use the helm deployed versions
+- [ ] generate a `values.schema.json` to help with correct configuration of the chart
+- [x] use helper include to select image
+- [x] download pinniped yamls
+- [x] download kubectl-split
+- [x] download yq
+- [x] create static pinniped chart resources
+- [x] remove namespace manifests: let Helm create them
+- [x] remove .metadata.namespace manifest references: let Helm inject them
+- [x] change .spec.service.namespace APIService references to {{ .Release.Namespace }}
+- [x] change .subjects[0].namespace Cluster/RoleBinding references to {{ .Release.Namespace }}
+- [x] make a diff mechanism to compare the changes easily: created a copy of the templates directory and used https://marketplace.visualstudio.com/items?itemName=moshfeu.compare-folders
+- [x] fields to make pluggable via Helm
+  - [x] Deployment/spec/replicas
+  - [x] Deployment/spec/template/spec/containers[0]/image
+  - [x] Deployment/spec/template/spec/containers[0]/imagePullPolicy
+  - [x] Service/spec/type
+- [x] use https://github.com/vmware-tanzu/pinniped/blob/main/deploy/local-user-authenticator/values.yaml to create Supervisor `values.yaml`
+- [x] use https://github.com/vmware-tanzu/pinniped/blob/main/deploy/concierge/values.yaml to create Concierge `values.yaml`
+- [x] use https://github.com/vmware-tanzu/pinniped/blob/main/deploy/supervisor/values.yaml to create Supervisor `values.yaml`
+- [x] inject version into Chart.yaml files
+- [x] inject appVersion into Chart.yaml files
