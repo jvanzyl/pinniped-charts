@@ -72,3 +72,12 @@ https://blog.andyserver.com/2021/09/adding-image-digest-references-to-your-helm-
 {{- printf "%s/%s:%s" .registry .repository .version -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+https://helm.sh/docs/howto/charts_tips_and_tricks/#creating-image-pull-secrets
+*/}}
+{{- define "imagePullSecret" }}
+{{- with .Values.image }}
+{{- printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\",\"email\":\"%s\",\"auth\":\"%s\"}}}" .registry .credentials.username .credentials.password .credentials.email (printf "%s:%s" .credentials.username .credentials.password | b64enc) | b64enc }}
+{{- end }}
+{{- end }}

@@ -34,6 +34,12 @@ yq="yq"
 # -------------------------------------------------------------------------------------------------
 # Local User Authenticator
 # -------------------------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Generating pinniped-local-user-authenticator chart"
+echo "--------------------------------------------------------------------------------------------"
+echo
+
 localUserAuthenticator="pinniped-local-user-authenticator"
 localUserAuthenticatorFile="install-local-user-authenticator.yaml"
 localUserAuthenticatorDeployment="deployment-local-user-authenticator.yaml"
@@ -66,6 +72,7 @@ ${yq} eval -i '.spec.template.spec.containers[0].image = "{{ template \"image\" 
 ${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "{{ .Values.image.pullPolicy }}"' ${localUserAuthenticatorDeployment}
 ${yq} eval -i '.spec.template.spec.securityContext.runAsUser = {{ .Values.securityContext.runAsUser }}' ${localUserAuthenticatorDeployment}
 ${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = {{ .Values.securityContext.runAsGroup }}' ${localUserAuthenticatorDeployment}
+cp ${common}/image-pull-secret.yaml .
 cd ..
 helm template --output-dir ${templatesRendered} --namespace ${localUserAuthenticatorNamespace} .
 mv ${templatesRendered}/${localUserAuthenticator}/templates/*.yaml ${templatesRendered}
@@ -78,6 +85,12 @@ cd ${basedir}
 # -------------------------------------------------------------------------------------------------
 # Concierge
 # -------------------------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Generating pinniped-concierge chart"
+echo "--------------------------------------------------------------------------------------------"
+echo
+
 concierge="pinniped-concierge"
 conciergeFile="install-pinniped-concierge.yaml"
 conciergeDeployment="deployment-pinniped-concierge.yaml"
@@ -102,6 +115,7 @@ cp -r templates ${templatesYtt}
 # Modify resources to be helm templates
 cd templates
 sed -e 's/@NAME@/concierge/' ${common}/_helpers.tpl > _helpers.tpl
+cp ${common}/image-pull-secret.yaml .
 mv customresourcedefinition*.yaml ../crds
 rm -f namespace-pinniped-concierge.yaml
 for yaml in $(ls *.yaml); do
@@ -132,8 +146,9 @@ sed 's/pinniped.yaml\:/pinniped.yaml\: |/' ${conciergeConfigMap} > tmp; mv tmp $
 ${yq} eval -i '.spec.impersonationProxy.mode = "{{ .Values.impersonationProxy.mode }}"' ${conciergeCredentialIssuer}
 ${yq} eval -i '.spec.impersonationProxy.service.type = {{ .Values.impersonationProxy.service.type }}' ${conciergeCredentialIssuer}
 ${yq} eval -i '.spec.impersonationProxy.service.annotations = {{ .Values.impersonationProxy.service.annotations }}' ${conciergeCredentialIssuer}
+cp ${common}/image-pull-secret.yaml .
 cd ..
-helm template --output-dir ${templatesRendered} --namespace ${conciergeNamespace} .
+helm --debug template --output-dir ${templatesRendered} --namespace ${conciergeNamespace} .
 cp crds/*.yaml ${templatesRendered}
 mv ${templatesRendered}/${concierge}/templates/*.yaml ${templatesRendered}
 rm -rf ${templatesRendered}/${concierge}
@@ -145,6 +160,12 @@ cd ${basedir}
 # -------------------------------------------------------------------------------------------------
 # Supervisor
 # -------------------------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Generating pinniped-supervisor chart"
+echo "--------------------------------------------------------------------------------------------"
+echo
+
 supervisor="pinniped-supervisor"
 supervisorFile="install-pinniped-supervisor.yaml"
 supervisorDeployment="deployment-pinniped-supervisor.yaml"
@@ -212,6 +233,7 @@ echo '{{- end }}' >> ${service}
 rm ${serviceClusterIp}
 rm ${serviceNodePort}
 rm ${serviceLoadBalancer}
+cp ${common}/image-pull-secret.yaml .
 cd ..
 helm template --output-dir ${templatesRendered} --namespace ${supervisorNamespace} .
 cp crds/*.yaml ${templatesRendered}
