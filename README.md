@@ -15,7 +15,7 @@ To be sure, if you look at the shell script to produce the charts you will cry. 
 ## Todo
 
 1. Run the local Pinniped integration test. In theory this should work given the manifests produced by the two paths are identical (save for one).
-2. Figure out why the remaining single manifest does not register as canonically identical (may need raise and issue or PR for Dyff)
+2. Figure out why the remaining single manifest does not register as canonically identical (may need raise and issue or PR for Dyff). I have added to an existing issue here: https://github.com/homeport/dyff/issues/171
 3. Determine the structure of the Helm `values.yaml` files for each chart. This definitely needs work, I just plugged in values to achieve parity in the comparison.
 
 ## Assumptions for Helm chart generation
