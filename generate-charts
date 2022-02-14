@@ -125,7 +125,7 @@ ${yq} eval -i '.data."pinniped.yaml" = env(config)' ${conciergeConfigMap}
 ${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.durationSeconds = {{ .Values.config.api.servingCertificate.durationSeconds }}' ${conciergeConfigMap}
 ${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.renewBeforeSeconds = {{ .Values.config.api.servingCertificate.renewBeforeSeconds }}' ${conciergeConfigMap}
 ${yq} eval -i '.data."pinniped.yaml".apiGroupSuffix = {{ .Values.config.apiGroupSuffix }}' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".kubeCertAgent.image = "{{ template \"image\" .Values.image }}"' ${conciergeConfigMap}
+${yq} eval -i '.data."pinniped.yaml".kubeCertAgent.image = {{ template \"image\" .Values.image }}' ${conciergeConfigMap}
 # Default sed in mac doesn't have -i (inplace replacement). But here we turn the element into inline yaml
 sed 's/pinniped.yaml\:/pinniped.yaml\: |/' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
 # CredentialsIssuer / ImpersonationProxy
