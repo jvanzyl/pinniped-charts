@@ -13,7 +13,7 @@
 # helm manifests: helm templates + values
 # dyff of ytt manifests vs helm manifests: they should be canonically identical
 
-pinnipedVersion="0.14.0"
+pinnipedVersion="$(git --git-dir ../pinniped/.git describe --tags | sed 's/^v//')"
 chartVersion="0.0.9"
 basedir=${PWD}
 target="${basedir}/target"
@@ -28,8 +28,8 @@ templatesRendered="templates.helm"
 kubesplit="kubectl-slice"
 yq="yq"
 
-[   -d ${target}                      ] && rm -rf ${target} && mkdir -p ${target}
-[   -d ${charts}                      ] && rm -rf ${charts}
+[ -d ${target} ] && rm -rf ${target} && mkdir -p ${target}
+[ -d ${charts} ] && rm -rf ${charts}
 
 # -------------------------------------------------------------------------------------------------
 # Local User Authenticator
