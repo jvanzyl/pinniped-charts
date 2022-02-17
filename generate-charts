@@ -27,6 +27,7 @@ templatesRendered="templates.helm"
 
 kubesplit="kubectl-slice"
 yq="yq"
+ytt="ytt"
 
 [ -d ${target} ] && rm -rf ${target} && mkdir -p ${target}
 [ -d ${charts} ] && rm -rf ${charts}
@@ -45,11 +46,12 @@ localUserAuthenticatorFile="install-local-user-authenticator.yaml"
 localUserAuthenticatorDeployment="deployment-local-user-authenticator.yaml"
 localUserAuthenticatorNamespace="local-user-authenticator"
 mkdir -p ${target}/${localUserAuthenticator}
-
 # Generate the uber manifest from the pinniped/deploy/local-user-authenticator directory
 uberYtt="${target}/${localUserAuthenticatorFile}"
-ytt --file ../pinniped/deploy/local-user-authenticator > ${uberYtt}
+echo ">>> Rendering ytt templates for ${localUserAuthenticator} ..."
+${ytt} --file ../pinniped/deploy/local-user-authenticator > ${uberYtt}
 # Split the uber manifest
+echo ">>> Splitting ytt templates for ${localUserAuthenticator} ..."
 ${kubesplit} --input-file=${uberYtt} --output-dir=${charts}/${localUserAuthenticator}/templates
 cp -r ${source}/${localUserAuthenticator} ${charts}
 ${yq} eval -i ".appVersion = \"${pinnipedVersion}\"" ${charts}/${localUserAuthenticator}/Chart.yaml
@@ -67,13 +69,17 @@ for yaml in $(ls *.yaml); do
   ${yq} eval -i '.metadata.namespace = "{{ .Release.Namespace }}"' ${yaml}
 done
 # Add Go template variables in select templates
-${yq} eval -i '.spec.replicas = {{ .Values.replicas }}' ${localUserAuthenticatorDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].image = "{{ template \"image\" .Values.image }}"' ${localUserAuthenticatorDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "{{ .Values.image.pullPolicy }}"' ${localUserAuthenticatorDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsUser = {{ .Values.securityContext.runAsUser }}' ${localUserAuthenticatorDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = {{ .Values.securityContext.runAsGroup }}' ${localUserAuthenticatorDeployment}
+${yq} eval -i '.spec.replicas = "x{{ .Values.replicas }}x"' ${localUserAuthenticatorDeployment}
+${yq} eval -i '.spec.template.spec.containers[0].image = "x{{ template \"image\" .Values.image }}x"' ${localUserAuthenticatorDeployment}
+${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "x{{ .Values.image.pullPolicy }}x"' ${localUserAuthenticatorDeployment}
+${yq} eval -i '.spec.template.spec.securityContext.runAsUser = "x{{ .Values.securityContext.runAsUser }}x"' ${localUserAuthenticatorDeployment}
+${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = "x{{ .Values.securityContext.runAsGroup }}x"' ${localUserAuthenticatorDeployment}
+${yq} eval -i '.spec.template.metadata.labels.app = "x{{ include \"labels\" }}x"' ${localUserAuthenticatorDeployment}
+sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${localUserAuthenticatorDeployment} > tmp; mv tmp ${localUserAuthenticatorDeployment}
+sed -e 's/app: {{ include "labels" }}/{{ include "labels" .Values }}/' ${localUserAuthenticatorDeployment} > tmp; mv tmp ${localUserAuthenticatorDeployment}
 cp ${common}/image-pull-secret.yaml .
 cd ..
+echo ">>> Rendering helm templates for ${localUserAuthenticator} ..."
 helm template --output-dir ${templatesRendered} --namespace ${localUserAuthenticatorNamespace} .
 mv ${templatesRendered}/${localUserAuthenticator}/templates/*.yaml ${templatesRendered}
 rm -rf ${templatesRendered}/${localUserAuthenticator}
@@ -81,7 +87,6 @@ rm -f ${templatesYtt}/namespace*.yaml
 mv ${templatesRendered} ${target}/${localUserAuthenticator}
 mv ${templatesYtt} ${target}/${localUserAuthenticator}
 cd ${basedir}
-
 # -------------------------------------------------------------------------------------------------
 # Concierge
 # -------------------------------------------------------------------------------------------------
@@ -101,8 +106,10 @@ mkdir -p ${target}/${concierge}
 
 # Generate the uber manifest from the pinniped/deploy/concierge directory
 uberYtt="${target}/${conciergeFile}"
-ytt --file ../pinniped/deploy/concierge > ${uberYtt}
+echo ">>> Rendering helm templates for ${concierge} ..."
+${ytt} --file ../pinniped/deploy/concierge > ${uberYtt}
 # Split the uber manifest
+echo ">>> Splitting ytt templates for ${concierge} ..."
 ${kubesplit} --input-file=${uberYtt} --output-dir=${charts}/${concierge}/templates
 cp -r ${source}/${concierge} ${charts}
 ${yq} eval -i ".appVersion = \"${pinnipedVersion}\"" ${charts}/${concierge}/Chart.yaml
@@ -114,40 +121,42 @@ rm -rf target
 cp -r templates ${templatesYtt}
 # Modify resources to be helm templates
 cd templates
-sed -e 's/@NAME@/concierge/' ${common}/_helpers.tpl > _helpers.tpl
-cp ${common}/image-pull-secret.yaml .
+sed -e 's/@NAME@/pinniped-concierge/' ${common}/_helpers.tpl > _helpers.tpl
 mv customresourcedefinition*.yaml ../crds
 rm -f namespace-pinniped-concierge.yaml
 for yaml in $(ls *.yaml); do
   # Remove all pinniped-concierge namespace references in resources that contain them
-  #${yq} eval -i '.metadata.namespace = "{{ .Release.Namespace }}"' ${yaml}
   ${yq} eval -i 'select(.metadata.namespace == "pinniped-concierge").metadata.namespace = "{{ .Release.Namespace }}"' ${yaml}
   ${yq} eval -i 'select(.kind == "APIService").spec.service.namespace = "{{ .Release.Namespace }}"' ${yaml}
   ${yq} eval -i '(select(.kind == "ClusterRoleBinding" or .kind == "RoleBinding").subjects[] | select(.kind == "ServiceAccount").namespace) = "{{ .Release.Namespace }}"' ${yaml}
 done
 # Deployment
 ${yq} eval -i '.spec.replicas = {{ .Values.replicas }}' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].image = "{{ template \"image\" .Values.image }}"' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "{{ .Values.image.pullPolicy }}"' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsUser = {{ .Values.securityContext.runAsUser }}' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = {{ .Values.securityContext.runAsGroup }}' ${conciergeDeployment}
+${yq} eval -i '.spec.template.spec.containers[0].image = "x{{ template \"image\" .Values.image }}x"' ${conciergeDeployment}
+${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "x{{ .Values.image.pullPolicy }}x"' ${conciergeDeployment}
+${yq} eval -i '.spec.template.spec.securityContext.runAsUser = "x{{ .Values.securityContext.runAsUser }}x"' ${conciergeDeployment}
+${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = "x{{ .Values.securityContext.runAsGroup }}x"' ${conciergeDeployment}
+${yq} eval -i '.spec.template.metadata.labels.app = "x{{ include \"labels\" }}x"' ${conciergeDeployment}
+sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${conciergeDeployment} > tmp; mv tmp ${conciergeDeployment}
+sed -e 's/app: {{ include "labels" }}/{{ include "labels" .Values }}/' ${conciergeDeployment} > tmp; mv tmp ${conciergeDeployment}
 # ConfigMap
 # The config map is a bit messy. The pinniped.yaml configuration is a string element instead of inline yaml in the released version which 
 # makes it hard to read and substitute values into. This is meh, but it works.
 export config="$(${yq} e '.data."pinniped.yaml"' ${conciergeConfigMap} | sed '/^[[:space:]]*$/d')"
 ${yq} eval -i '.data."pinniped.yaml" = env(config)' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.durationSeconds = {{ .Values.config.api.servingCertificate.durationSeconds }}' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.renewBeforeSeconds = {{ .Values.config.api.servingCertificate.renewBeforeSeconds }}' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".apiGroupSuffix = {{ .Values.config.apiGroupSuffix }}' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".kubeCertAgent.image = {{ template \"image\" .Values.image }}' ${conciergeConfigMap}
-# Default sed in mac doesn't have -i (inplace replacement). But here we turn the element into inline yaml
+${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.durationSeconds = "x{{ .Values.config.api.servingCertificate.durationSeconds }}x"' ${conciergeConfigMap}
+${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.renewBeforeSeconds = "x{{ .Values.config.api.servingCertificate.renewBeforeSeconds }}x"' ${conciergeConfigMap}
+${yq} eval -i '.data."pinniped.yaml".apiGroupSuffix = "x{{ .Values.config.apiGroupSuffix }}x"' ${conciergeConfigMap}
+${yq} eval -i '.data."pinniped.yaml".kubeCertAgent.image = "x{{ template \"image\" .Values.image }}x"' ${conciergeConfigMap}
 sed 's/pinniped.yaml\:/pinniped.yaml\: |/' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
+sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
 # CredentialsIssuer / ImpersonationProxy
 ${yq} eval -i '.spec.impersonationProxy.mode = "{{ .Values.impersonationProxy.mode }}"' ${conciergeCredentialIssuer}
 ${yq} eval -i '.spec.impersonationProxy.service.type = {{ .Values.impersonationProxy.service.type }}' ${conciergeCredentialIssuer}
 ${yq} eval -i '.spec.impersonationProxy.service.annotations = {{ .Values.impersonationProxy.service.annotations }}' ${conciergeCredentialIssuer}
 cp ${common}/image-pull-secret.yaml .
 cd ..
+echo ">>> Rendering helm templates for ${concierge} ..."
 helm --debug template --output-dir ${templatesRendered} --namespace ${conciergeNamespace} .
 cp crds/*.yaml ${templatesRendered}
 mv ${templatesRendered}/${concierge}/templates/*.yaml ${templatesRendered}
@@ -181,9 +190,11 @@ cp values-ytt.yaml target
 cd target
 rm values.yaml
 uberYtt="${target}/${supervisorFile}"
-ytt --file . > ${uberYtt}
+echo ">>> Rendering helm templates for ${supervisor} ..."
+${ytt} --file . > ${uberYtt}
 cd ${basedir}
 # Split the uber manifest
+echo ">>> Splitting ytt templates for ${supervisor} ..."
 ${kubesplit} --input-file=${uberYtt} --output-dir=${charts}/${supervisor}/templates
 cp -r ${source}/${supervisor} ${charts}
 ${yq} eval -i ".appVersion = \"${pinnipedVersion}\"" ${charts}/${supervisor}/Chart.yaml
@@ -196,7 +207,7 @@ rm -rf target
 cp -r templates ${templatesYtt}
 # Modify resources to be helm templates
 cd templates
-sed -e 's/@NAME@/supervisor/' ${common}/_helpers.tpl > _helpers.tpl
+sed -e 's/@NAME@/pinniped-supervisor/' ${common}/_helpers.tpl > _helpers.tpl
 mv customresourcedefinition*.yaml ../crds
 rm -f namespace-pinniped-supervisor.yaml
 for yaml in $(ls *.yaml); do
@@ -206,21 +217,39 @@ for yaml in $(ls *.yaml); do
 done
 # Deployment
 ${yq} eval -i '.spec.replicas = {{ .Values.replicas }}' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].image = "{{ template \"image\" .Values.image }}"' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "{{ .Values.image.pullPolicy }}"' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsUser = {{ .Values.securityContext.runAsUser }}' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = {{ .Values.securityContext.runAsGroup }}' ${supervisorDeployment}
+${yq} eval -i '.spec.template.spec.containers[0].image = "x{{ template \"image\" .Values.image }}x"' ${supervisorDeployment}
+${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "x{{ .Values.image.pullPolicy }}x"' ${supervisorDeployment}
+${yq} eval -i '.spec.template.spec.securityContext.runAsUser = "x{{ .Values.securityContext.runAsUser }}x"' ${supervisorDeployment}
+${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = "x{{ .Values.securityContext.runAsGroup }}x"' ${supervisorDeployment}
+${yq} eval -i '.spec.template.metadata.labels.app = "x{{ include \"labels\" }}x"' ${supervisorDeployment}
+sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${supervisorDeployment} > tmp; mv tmp ${supervisorDeployment}
+sed -e 's/app: {{ include "labels" }}/{{ include "labels" .Values }}/' ${supervisorDeployment} > tmp; mv tmp ${supervisorDeployment}
 # ConfigMap
 sed -e 's/pinniped.yaml: |/pinniped.yaml: /' ${supervisorConfigMap} > tmp
 ${yq} eval -i '.data."pinniped.yaml".apiGroupSuffix = {{ .Values.config.apiGroupSuffix }}' tmp
 sed -e 's/pinniped.yaml:/pinniped.yaml: |/' tmp > ${supervisorConfigMap} 
 rm tmp
+#
 # Service: generate a single file with the various service options which are controlled by configuration in the values.yaml
+#
 serviceClusterIp=service-pinniped-supervisor-clusterip.yaml
-${yq} eval -i '.spec.ports[0].port = {{ .Values.service.clusterIP.port }}' ${serviceClusterIp}
+${yq} eval -i '.spec.ports[0].name = "x{{ .Values.service.clusterIP.name }}x"' ${serviceClusterIp}
+${yq} eval -i '.spec.ports[0].protocol = "x{{ .Values.service.clusterIP.protocol }}x"' ${serviceClusterIp}
+${yq} eval -i '.spec.ports[0].targetPort = "x{{ .Values.service.clusterIP.port }}x"' ${serviceClusterIp}
+${yq} eval -i '.spec.ports[0].port = "x{{ .Values.service.clusterIP.targetPort }}x"' ${serviceClusterIp}
+sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${serviceClusterIp} > tmp; mv tmp ${serviceClusterIp}
 serviceNodePort=service-pinniped-supervisor-nodeport.yaml
-${yq} eval -i '.spec.ports[0].port = {{ .Values.service.nodePort.port }}' ${serviceNodePort}
+${yq} eval -i '.spec.ports[0].name = "x{{ .Values.service.nodePort.name }}x"' ${serviceNodePort}
+${yq} eval -i '.spec.ports[0].protocol = "x{{ .Values.service.nodePort.protocol }}x"' ${serviceNodePort}
+${yq} eval -i '.spec.ports[0].targetPort = "x{{ .Values.service.nodePort.port }}x"' ${serviceNodePort}
+${yq} eval -i '.spec.ports[0].port = "x{{ .Values.service.nodePort.targetPort }}x"' ${serviceNodePort}
+sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${serviceNodePort} > tmp; mv tmp ${serviceNodePort}
 serviceLoadBalancer=service-pinniped-supervisor-loadbalancer.yaml
+${yq} eval -i '.spec.ports[0].name = "x{{ .Values.service.loadBalancer.name }}x"' ${serviceLoadBalancer}
+${yq} eval -i '.spec.ports[0].protocol = "x{{ .Values.service.loadBalancer.protocol }}x"' ${serviceLoadBalancer}
+${yq} eval -i '.spec.ports[0].targetPort = "x{{ .Values.service.loadBalancer.port }}x"' ${serviceLoadBalancer}
+${yq} eval -i '.spec.ports[0].port = "x{{ .Values.service.loadBalancer.targetPort }}x"' ${serviceLoadBalancer}
+sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${serviceLoadBalancer} > tmp; mv tmp ${serviceLoadBalancer}
 service="service-pinniped-supervisor.yaml"
 ${yq} eval -i '.spec.ports[0].port = {{ .Values.service.loadBalancer.port }}' ${serviceLoadBalancer}
 echo '{{- if eq .Values.service.type "clusterIP" }}' > ${service}
@@ -230,11 +259,22 @@ cat ${serviceNodePort} >> ${service}
 echo '{{- else if eq .Values.service.type "loadBalancer" }}' >> ${service}
 cat ${serviceLoadBalancer} >> ${service}
 echo '{{- end }}' >> ${service}
+#
+# Test services for local integration test
+#
+service="test-service-pinniped-supervisor.yaml"
+echo '{{- if .Values.service.test }}' > ${service}
+cat ${serviceClusterIp} >> ${service}
+echo '---' >> ${service}
+cat ${serviceNodePort} >> ${service}
+echo '{{- end }}' >> ${service}
+
 rm ${serviceClusterIp}
 rm ${serviceNodePort}
 rm ${serviceLoadBalancer}
 cp ${common}/image-pull-secret.yaml .
 cd ..
+echo ">>> Rendering helm templates for ${supervisor} ..."
 helm template --output-dir ${templatesRendered} --namespace ${supervisorNamespace} .
 cp crds/*.yaml ${templatesRendered}
 mv ${templatesRendered}/${supervisor}/templates/*.yaml ${templatesRendered}
@@ -304,9 +344,3 @@ cd -
 echo
 echo "If you don't see any colored diffs above, the ytt generated resources and helm generated resources are canonically identical."
 echo
-
-# try dyff
-# leading "---" are different
-# single quote around strings need to be removed
-# add back the CRDs
-#helm template --output-dir templates.rendered --namespace pinniped-supervisor .

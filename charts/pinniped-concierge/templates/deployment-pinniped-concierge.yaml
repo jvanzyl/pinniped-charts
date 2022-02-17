@@ -13,19 +13,19 @@ spec:
   template:
     metadata:
       labels:
-        app: pinniped-concierge
+        {{ include "labels" .Values }}
         deployment.pinniped.dev: concierge
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
     spec:
       securityContext:
-        runAsUser: 65532
-        runAsGroup: 65532
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
       serviceAccountName: pinniped-concierge
       containers:
         - name: pinniped-concierge
-          image: '{{ template "image" .Values.image }}'
-          imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+          image: {{ template "image" .Values.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             readOnlyRootFilesystem: true
           resources:

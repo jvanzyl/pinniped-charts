@@ -6,22 +6,22 @@ metadata:
   labels:
     app: local-user-authenticator
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
       app: local-user-authenticator
   template:
     metadata:
       labels:
-        app: local-user-authenticator
+        {{ include "labels" .Values }}
     spec:
       securityContext:
-        runAsUser: 65532
-        runAsGroup: 65532
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
       serviceAccountName: local-user-authenticator
       containers:
         - name: local-user-authenticator
-          image: '{{ template "image" .Values.image }}'
-          imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+          image: {{ template "image" .Values.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - local-user-authenticator

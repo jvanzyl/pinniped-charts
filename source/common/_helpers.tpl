@@ -1,4 +1,4 @@
-{{/*
+ {{/*
 Expand the name of the chart.
 */}}
 {{- define "@NAME@.name" -}}
@@ -79,5 +79,15 @@ https://helm.sh/docs/howto/charts_tips_and_tricks/#creating-image-pull-secrets
 {{- define "imagePullSecret" }}
 {{- with .Values.image }}
 {{- printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\",\"email\":\"%s\",\"auth\":\"%s\"}}}" .registry .credentials.username .credentials.password .credentials.email (printf "%s:%s" .credentials.username .credentials.password | b64enc) | b64enc }}
+{{- end }}
+{{- end }}
+
+{{/*
+ Labels taking into account custom labels
+*/}}
+{{- define "labels" -}}
+app: @NAME@
+{{- with .customLabels }}
+{{ toYaml . | indent 8 }}
 {{- end }}
 {{- end }}

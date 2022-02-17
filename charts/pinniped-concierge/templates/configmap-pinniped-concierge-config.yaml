@@ -11,9 +11,9 @@ data:
       url: null
     api:
       servingCertificate:
-        durationSeconds: 2592000
-        renewBeforeSeconds: 2160000
-    apiGroupSuffix: pinniped.dev
+        durationSeconds: {{ .Values.config.api.servingCertificate.durationSeconds }}
+        renewBeforeSeconds: {{ .Values.config.api.servingCertificate.renewBeforeSeconds }}
+    apiGroupSuffix: {{ .Values.config.apiGroupSuffix }}
     # aggregatedAPIServerPort may be set here, although other YAML references to the default port (10250) may also need to be updated
     # impersonationProxyServerPort may be set here, although other YAML references to the default port (8444) may also need to be updated
     names:
@@ -29,4 +29,4 @@ data:
     labels: {"app": "pinniped-concierge"}
     kubeCertAgent:
       namePrefix: pinniped-concierge-kube-cert-agent-
-      image: projects.registry.vmware.com/pinniped/pinniped-server:latest
+      image: {{ template "image" .Values.image }}

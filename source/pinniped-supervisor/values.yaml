@@ -37,8 +37,17 @@ securityContext:
 service:
   type: clusterIP
   clusterIP:
+    name: http
     port: 8080
+    protocol: TCP
+    targetPort: 8080
   nodePort:
+    name: http
     port: 8080
+    protocol: TCP
+    targetPort: 8080
   loadBalancer:
+    name: http
     port: 8080
+    protocol: TCP
+    targetPort: 8080

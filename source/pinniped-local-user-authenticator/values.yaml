@@ -11,7 +11,7 @@ image:
   version: "latest"
   #version: "sha256:f3c4fdfd3ef865d4b97a1fd295d94acc3f0c654c46b6f27ffad5cf80216903c8"
   pullPolicy: IfNotPresent
-  credentials: 
+  credentials:
     enabled: false
     username: ""
     password: ""
@@ -25,4 +25,3 @@ image:
 securityContext:
   runAsUser: 65532
   runAsGroup: 65532
-
