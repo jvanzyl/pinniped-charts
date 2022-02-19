@@ -1,0 +1,100 @@
+# -------------------------------------------------------------------------------------------------
+# Supervisor
+# -------------------------------------------------------------------------------------------------
+
+replicas: 2
+
+customLabels:
+  mySupervisorCustomLabelName: mySupervisorCustomLabelValue
+
+image:
+  registry: "pinniped.local"
+  repository: "test/build"
+  version: "latest"
+  pullPolicy: IfNotPresent
+  credentials:
+    enabled: false
+    username: ""
+    password: ""
+    email: ""
+    secretName: "regcred"
+
+config:
+  apiGroupSuffix: pinniped.dev
+
+securityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: pinniped-supervisor-nodeport
+#   namespace: supervisor
+#   labels:
+#     app: pinniped-supervisor
+#     mySupervisorCustomLabelName: mySupervisorCustomLabelValue
+#   annotations:
+#     kapp.k14s.io/disable-default-label-scoping-rules: ""
+# spec:
+#   type: NodePort
+#   selector:
+#     deployment.pinniped.dev: supervisor
+#   ports:
+#   - name: http
+#     protocol: TCP
+#     port: 80
+#     targetPort: 8080
+#     nodePort: 31234
+#   - name: https
+#     protocol: TCP
+#     port: 443
+#     targetPort: 8443
+#     nodePort: 31243
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: pinniped-supervisor-clusterip
+#   namespace: supervisor
+#   labels:
+#     app: pinniped-supervisor
+#     mySupervisorCustomLabelName: mySupervisorCustomLabelValue
+#   annotations:
+#     kapp.k14s.io/disable-default-label-scoping-rules: ""
+# spec:
+#   type: ClusterIP
+#   selector:
+#     deployment.pinniped.dev: supervisor
+#   ports:
+#   - name: https
+#     protocol: TCP
+#     port: 443
+#     targetPort: 8443
+
+service:
+  clusterIP:
+    enabled: true
+    name: https
+    port: 8443
+    protocol: TCP
+    targetPort: 443
+  nodePort:
+    enabled: enabled
+    name: https
+    protocol: TCP
+    port: 443
+    targetPort: 8443       
+    nodePort: 31243
+    testPort: 
+      name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 31234
+  loadBalancer:
+    enabled: false
+    name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080

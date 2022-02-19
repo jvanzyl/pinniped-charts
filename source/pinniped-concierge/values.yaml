@@ -34,9 +34,12 @@ securityContext:
 config:
   api:
     servingCertificate:
-      durationSeconds: 2592000
-      renewBeforeSeconds: 2160000
+      durationSeconds: '2592000'
+      renewBeforeSeconds: '2160000'
   apiGroupSuffix: pinniped.dev
+  discovery:
+    url: "null"
+  logLevel: debug
 
 impersonationProxy:
   mode: auto

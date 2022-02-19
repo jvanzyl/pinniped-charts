@@ -2,9 +2,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: pinniped-supervisor
-  namespace: '{{ .Release.Namespace }}'
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: pinniped-supervisor
+    {{ include "labels" .Values }}
 rules:
   - apiGroups:
       - ""

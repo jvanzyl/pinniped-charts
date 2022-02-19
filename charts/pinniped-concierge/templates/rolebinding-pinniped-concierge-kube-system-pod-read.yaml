@@ -4,11 +4,11 @@ metadata:
   name: pinniped-concierge-kube-system-pod-read
   namespace: kube-system
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 subjects:
   - kind: ServiceAccount
     name: pinniped-concierge
-    namespace: '{{ .Release.Namespace }}'
+    namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
   name: pinniped-concierge-kube-system-pod-read

@@ -3,7 +3,7 @@ kind: APIService
 metadata:
   name: v1alpha1.login.concierge.pinniped.dev
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 spec:
   version: v1alpha1
   group: login.concierge.pinniped.dev
@@ -11,5 +11,5 @@ spec:
   versionPriority: 15
   service:
     name: pinniped-concierge-api
-    namespace: '{{ .Release.Namespace }}'
+    namespace: {{ .Release.Namespace }}
     port: 443

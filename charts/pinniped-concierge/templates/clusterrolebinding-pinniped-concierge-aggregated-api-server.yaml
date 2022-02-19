@@ -3,11 +3,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: pinniped-concierge-aggregated-api-server
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 subjects:
   - kind: ServiceAccount
     name: pinniped-concierge
-    namespace: '{{ .Release.Namespace }}'
+    namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
   name: pinniped-concierge-aggregated-api-server

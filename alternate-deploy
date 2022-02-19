@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+# Extension that hooks into a small extension point in the Pinniped prepare-for-integration-tests.sh script
+# that allows us to use Helm (in various modes) to deploy to the local pinniped-kind cluster used for the
+# local integration tests.
+
+cd "$(dirname "$0")"
+
+app=${1}
+# tag is fed in from the prepare-for-integration-tests.sh script, just uuidgen to identify a 
+# specific docker build of the pinniped-server image.
+tag=${2}
+
+./test-charts ${app} ${tag}
+
+if [ "${app}" = "local-user-authenticator" ]; then
+  cd target/lit/pinniped-local-user-authenticator/templates
+  kubectl create namespace local-user-authenticator --dry-run=client -o yaml | kubectl apply -f -
+  ytt --file . | kapp deploy --yes --app local-user-authenticator --diff-changes --file -
+fi
+
+if [ "${app}" = "pinniped-supervisor" ]; then
+  cd target/lit/pinniped-supervisor/templates
+  kubectl create namespace supervisor --dry-run=client -o yaml | kubectl apply -f -
+  ytt --file . | kapp deploy --yes --app pinniped-supervisor --diff-changes --file -
+fi
+
+if [ "${app}" = "pinniped-concierge" ]; then
+  cd target/lit/pinniped-concierge/templates
+  kubectl create namespace concierge --dry-run=client -o yaml | kubectl apply -f -
+  ytt --file . | kapp deploy --yes --app pinniped-concierge --diff-changes --file -
+fi
+

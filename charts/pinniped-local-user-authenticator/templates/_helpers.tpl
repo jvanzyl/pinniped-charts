@@ -88,6 +88,26 @@ https://helm.sh/docs/howto/charts_tips_and_tricks/#creating-image-pull-secrets
 {{- define "labels" -}}
 app: local-user-authenticator
 {{- with .customLabels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}
+
+{{/*
+ Labels taking into account custom labels
+*/}}
+{{- define "templateLabels" -}}
+app: local-user-authenticator
+{{- with .customLabels }}
 {{ toYaml . | indent 8 }}
+{{- end }}
+{{- end }}
+
+{{/*
+ Labels taking into account custom labels
+*/}}
+{{- define "labels6" -}}
+app: local-user-authenticator
+{{- with .customLabels }}
+{{ toYaml . | indent 6 }}
 {{- end }}
 {{- end }}

@@ -2,13 +2,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pinniped-concierge-config
-  namespace: '{{ .Release.Namespace }}'
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 data:
   pinniped.yaml: |
     discovery:
-      url: null
+      url: {{ .Values.config.discovery.url }}
     api:
       servingCertificate:
         durationSeconds: {{ .Values.config.api.servingCertificate.durationSeconds }}
@@ -26,7 +26,9 @@ data:
       impersonationCACertificateSecret: pinniped-concierge-impersonation-proxy-ca-certificate
       impersonationSignerSecret: pinniped-concierge-impersonation-proxy-signer-ca-certificate
       agentServiceAccount: pinniped-concierge-kube-cert-agent
-    labels: {"app": "pinniped-concierge"}
     kubeCertAgent:
       namePrefix: pinniped-concierge-kube-cert-agent-
       image: {{ template "image" .Values.image }}
+    logLevel: {{ .Values.config.logLevel }}
+    labels:
+      {{ include "labels6" .Values }}

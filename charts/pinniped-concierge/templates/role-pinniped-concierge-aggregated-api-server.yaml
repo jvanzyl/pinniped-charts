@@ -2,9 +2,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: pinniped-concierge-aggregated-api-server
-  namespace: '{{ .Release.Namespace }}'
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 rules:
   - apiGroups:
       - ""

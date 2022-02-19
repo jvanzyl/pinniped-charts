@@ -5,14 +5,14 @@
 replicas: 2
 
 # How to process this in the same way as ytt
-customLabels: {}
+customLabels: 
+  myConciergeCustomLabelName: myConciergeCustomLabelValue
 
 # https://blog.andyserver.com/2021/09/adding-image-digest-references-to-your-helm-charts/
 image:
-  registry: "projects.registry.vmware.com"
-  repository: "pinniped/pinniped-server"
+  registry: "pinniped.local"
+  repository: "test/build"
   version: "latest"
-  #version: "sha256:f3c4fdfd3ef865d4b97a1fd295d94acc3f0c654c46b6f27ffad5cf80216903c8"
   pullPolicy: IfNotPresent
   credentials: 
     enabled: false
@@ -21,25 +21,16 @@ image:
     email: ""
     secretName: "regcred"
 
-nameOverride: ""
-fullnameOverride: ""
-
-# This is all deployment stuff
-
 securityContext:
   runAsUser: 65532
   runAsGroup: 65532
 
-# pinniped.yaml config
 config:
   api:
     servingCertificate:
       durationSeconds: '2592000'
       renewBeforeSeconds: '2160000'
   apiGroupSuffix: pinniped.dev
-  discovery:
-    url: "null"
-  logLevel: debug
 
 impersonationProxy:
   mode: auto

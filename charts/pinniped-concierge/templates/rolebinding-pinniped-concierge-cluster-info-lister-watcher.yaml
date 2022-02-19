@@ -4,11 +4,11 @@ metadata:
   name: pinniped-concierge-cluster-info-lister-watcher
   namespace: kube-public
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 subjects:
   - kind: ServiceAccount
     name: pinniped-concierge
-    namespace: '{{ .Release.Namespace }}'
+    namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
   name: pinniped-concierge-cluster-info-lister-watcher

@@ -1,11 +1,11 @@
-{{- if eq .Values.service.type "clusterIP" }}
+{{- if .Values.service.clusterIP.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: pinniped-supervisor-clusterip
-  namespace: '{{ .Release.Namespace }}'
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: pinniped-supervisor
+    {{ include "labels" .Values }}
   annotations:
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 spec:
@@ -17,14 +17,18 @@ spec:
       protocol: {{ .Values.service.clusterIP.protocol }}
       port: {{ .Values.service.clusterIP.targetPort }}
       targetPort: {{ .Values.service.clusterIP.port }}
-{{- else if eq .Values.service.type "nodePort" }}
+{{- end }}
+{{- if .Values.service.nodePort.enabled }}
+{{- if .Values.service.clusterIP.enabled }}
+---
+{{- end }}
 apiVersion: v1
 kind: Service
 metadata:
   name: pinniped-supervisor-nodeport
-  namespace: '{{ .Release.Namespace }}'
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: pinniped-supervisor
+    {{ include "labels" .Values }}
   annotations:
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 spec:
@@ -34,16 +38,25 @@ spec:
   ports:
     - name: {{ .Values.service.nodePort.name }}
       protocol: {{ .Values.service.nodePort.protocol }}
-      port: {{ .Values.service.nodePort.targetPort }}
-      targetPort: {{ .Values.service.nodePort.port }}
-{{- else if eq .Values.service.type "loadBalancer" }}
+      port: {{ .Values.service.nodePort.port }}
+      targetPort: {{ .Values.service.nodePort.targetPort }}
+      nodePort: {{ .Values.service.nodePort.nodePort }}
+{{- if .Values.service.nodePort.testPort }}
+    - name: {{ .Values.service.nodePort.testPort.name }}
+      protocol: {{ .Values.service.nodePort.testPort.protocol }}
+      port: {{ .Values.service.nodePort.testPort.port }}
+      targetPort: {{ .Values.service.nodePort.testPort.targetPort }}
+      nodePort: {{ .Values.service.nodePort.testPort.nodePort }}
+{{- end }}
+{{- end }}
+{{- if .Values.service.loadBalancer.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: pinniped-supervisor-loadbalancer
-  namespace: '{{ .Release.Namespace }}'
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: pinniped-supervisor
+    {{ include "labels" .Values }}
   annotations:
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 spec:
@@ -51,8 +64,8 @@ spec:
   selector:
     deployment.pinniped.dev: supervisor
   ports:
-    - name: {? {.Values.service.loadBalancer.name: ''} : ''}
-      protocol: {? {.Values.service.loadBalancer.protocol: ''} : ''}
-      port: {? {.Values.service.loadBalancer.targetPort: ''} : ''}
-      targetPort: {? {.Values.service.loadBalancer.port: ''} : ''}
+    - name: {{ .Values.service.loadBalancer.name }}
+      protocol: {{ .Values.service.loadBalancer.protocol }}
+      port: {{ .Values.service.loadBalancer.targetPort }}
+      targetPort: {{ .Values.service.loadBalancer.port }}
 {{- end }}

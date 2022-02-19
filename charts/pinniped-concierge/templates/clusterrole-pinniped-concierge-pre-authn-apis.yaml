@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: pinniped-concierge-pre-authn-apis
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 rules:
   - apiGroups:
       - login.concierge.pinniped.dev

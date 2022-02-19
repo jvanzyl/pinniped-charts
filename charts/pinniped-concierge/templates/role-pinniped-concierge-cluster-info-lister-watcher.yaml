@@ -4,7 +4,7 @@ metadata:
   name: pinniped-concierge-cluster-info-lister-watcher
   namespace: kube-public
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 rules:
   - apiGroups:
       - ""

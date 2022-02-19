@@ -1,0 +1,21 @@
+# -------------------------------------------------------------------------------------------------
+# Local User Authenticator
+# -------------------------------------------------------------------------------------------------
+
+replicas: 1
+
+image:
+  registry: "pinniped.local"
+  repository: "test/build"
+  version: "latest"
+  pullPolicy: IfNotPresent
+  credentials:
+    enabled: false
+    username: ""
+    password: ""
+    email: ""
+    secretName: "regcred"
+
+securityContext:
+  runAsUser: 65532
+  runAsGroup: 65532

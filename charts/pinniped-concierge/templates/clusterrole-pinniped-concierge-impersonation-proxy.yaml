@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: pinniped-concierge-impersonation-proxy
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 rules:
   - apiGroups:
       - ""

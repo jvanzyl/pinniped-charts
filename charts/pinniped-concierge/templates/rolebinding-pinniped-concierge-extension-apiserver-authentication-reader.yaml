@@ -4,11 +4,11 @@ metadata:
   name: pinniped-concierge-extension-apiserver-authentication-reader
   namespace: kube-system
   labels:
-    app: pinniped-concierge
+    {{ include "labels" .Values }}
 subjects:
   - kind: ServiceAccount
     name: pinniped-concierge
-    namespace: '{{ .Release.Namespace }}'
+    namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
   name: extension-apiserver-authentication-reader
