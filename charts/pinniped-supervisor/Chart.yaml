@@ -1,5 +1,5 @@
 apiVersion: "v2"
 name: "pinniped-supervisor"
 description: "A Helm chart for Pinniped Supervisor"
-version: "0.0.2"
+version: "0.0.3"
 appVersion: "0.14.0-55-g6491742c"

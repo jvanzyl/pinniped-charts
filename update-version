@@ -6,5 +6,5 @@ echo ${version} > VERSION
 ./generate-charts
 git add .
 git commit -m "Update charts"
-git tag ${version}
+git tag "0.0.${version}"
 git push && git push --tags
