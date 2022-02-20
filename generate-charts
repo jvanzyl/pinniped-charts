@@ -388,7 +388,6 @@ for file in $(ls ${templatesRendered}); do
   if [ "${file}" = "configmap-pinniped-supervisor-static-config.yaml" ]; then
     pinnipedConfigDiff "pinniped-supervisor" ${helm} ${ytt}
   else
-    # Account for the different in rendered file name
     if [ "${file}" = "service-pinniped-supervisor.yaml" ]; then
       dyff between ${templatesRendered}/${file} ${templatesYtt}/service-pinniped-supervisor-clusterip.yaml
     else
