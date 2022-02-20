@@ -3,7 +3,7 @@
 # -------------------------------------------------------------------------------------------------
 
 # Global across all resources
-customLabels: 
+customLabels:
   myConciergeCustomLabelName: myConciergeCustomLabelValue
 
 # Image
@@ -12,7 +12,7 @@ image:
   repository: "test/build"
   version: "latest"
   pullPolicy: IfNotPresent
-  credentials: 
+  credentials:
     enabled: false
     username: ""
     password: ""
@@ -26,6 +26,7 @@ config:
       durationSeconds: 2592000
       renewBeforeSeconds: 2160000
   apiGroupSuffix: pinniped.dev
+  logLevel: debug
 
 # Deployment
 deployment:
@@ -34,7 +35,7 @@ deployment:
     runAsUser: 65532
     runAsGroup: 65532
   labels:
-    deployment.pinniped.dev: concierge  
+    deployment.pinniped.dev: concierge
 
 # Credential Issuer
 credentialIssuer:

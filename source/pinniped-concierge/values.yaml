@@ -42,7 +42,7 @@ config:
   # aggregatedAPIServerPort: 10250
   # needs to be enabled in templates
   # impersonationProxyServerPort: 8444
-  logLevel: debug
+  logLevel: info
 
 # Deployment
 deployment:
@@ -53,7 +53,7 @@ deployment:
     # specifies the group ID that will own the process, see the Dockerfile for the reasoning behind this choice
     runAsGroup: 65532
   labels:
-    deployment.pinniped.dev: concierge  
+    deployment.pinniped.dev: concierge
 
 # Credential Issuer
 credentialIssuer:

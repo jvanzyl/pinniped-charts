@@ -14,7 +14,7 @@
 # dyff of ytt manifests vs helm manifests: they should be canonically identical
 
 pinnipedVersion="$(git --git-dir ../pinniped/.git describe --tags | sed 's/^v//')"
-chartVersion="0.0.9"
+chartVersion="0.0.$(cat VERSION | tr -d '\n')"
 basedir=${PWD}
 target="${basedir}/target"
 source="${basedir}/source"
