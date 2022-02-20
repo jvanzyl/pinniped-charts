@@ -2,8 +2,7 @@ name: release
 
 on:
   push:
-    tags:
-    - '*'
+    - main
 
 jobs:
   build:
@@ -28,4 +27,4 @@ jobs:
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.3.0
         env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"  
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
