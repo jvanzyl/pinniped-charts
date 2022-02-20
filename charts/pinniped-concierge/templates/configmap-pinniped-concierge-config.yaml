@@ -3,16 +3,15 @@ kind: ConfigMap
 metadata:
   name: pinniped-concierge-config
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{ include "labels" .Values }}
+  labels: {{ include "labels" .Values | nindent 4 }}
 data:
   pinniped.yaml: |
     discovery:
       url: {{ .Values.config.discovery.url }}
     api:
       servingCertificate:
-        durationSeconds: {{ .Values.config.api.servingCertificate.durationSeconds }}
-        renewBeforeSeconds: {{ .Values.config.api.servingCertificate.renewBeforeSeconds }}
+        durationSeconds: {{ .Values.config.api.servingCertificate.durationSeconds | int }}
+        renewBeforeSeconds: {{ .Values.config.api.servingCertificate.renewBeforeSeconds | int }}
     apiGroupSuffix: {{ .Values.config.apiGroupSuffix }}
     # aggregatedAPIServerPort may be set here, although other YAML references to the default port (10250) may also need to be updated
     # impersonationProxyServerPort may be set here, although other YAML references to the default port (8444) may also need to be updated
@@ -26,9 +25,8 @@ data:
       impersonationCACertificateSecret: pinniped-concierge-impersonation-proxy-ca-certificate
       impersonationSignerSecret: pinniped-concierge-impersonation-proxy-signer-ca-certificate
       agentServiceAccount: pinniped-concierge-kube-cert-agent
+    labels: {{ include "labels" .Values | nindent 6 }}
     kubeCertAgent:
       namePrefix: pinniped-concierge-kube-cert-agent-
       image: {{ template "image" .Values.image }}
     logLevel: {{ .Values.config.logLevel }}
-    labels:
-      {{ include "labels6" .Values }}

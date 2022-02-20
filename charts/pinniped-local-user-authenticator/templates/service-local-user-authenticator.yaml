@@ -4,7 +4,7 @@ metadata:
   name: local-user-authenticator
   namespace: {{ .Release.Namespace }}
   labels:
-    {{ include "labels" .Values }}
+    app: local-user-authenticator
   annotations:
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 spec:

@@ -2,13 +2,11 @@
 # Concierge
 # -------------------------------------------------------------------------------------------------
 
-replicas: 2
-
-# How to process this in the same way as ytt
+# Global across all resources
 customLabels: 
   myConciergeCustomLabelName: myConciergeCustomLabelValue
 
-# https://blog.andyserver.com/2021/09/adding-image-digest-references-to-your-helm-charts/
+# Image
 image:
   registry: "pinniped.local"
   repository: "test/build"
@@ -21,10 +19,7 @@ image:
     email: ""
     secretName: "regcred"
 
-securityContext:
-  runAsUser: 65532
-  runAsGroup: 65532
-
+# ConfigMap: pinniped.yaml
 config:
   api:
     servingCertificate:
@@ -32,20 +27,24 @@ config:
       renewBeforeSeconds: '2160000'
   apiGroupSuffix: pinniped.dev
 
-impersonationProxy:
-  mode: auto
-  externalEndpoint: ""
-  service:
-    type: LoadBalancer
-    annotations:
-      service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "4000"
-    loadBalancerIp: ""
+# Deployment
+deployment:
+  labels:
+    deployment.pinniped.dev: concierge  
 
-# Set the standard golang HTTPS_PROXY and NO_PROXY environment variables on the Concierge containers.
-# These will be used when the Concierge makes backend-to-backend calls to authenticators using HTTPS,
-# e.g. when the Concierge fetches discovery documents, JWKS keys, and POSTs to token webhooks.
-# The Concierge never makes insecure HTTP calls, so there is no reason to set HTTP_PROXY.
-# Optional.
-#env:
-#  HTTPS_PROXY: http://proxy.example.com
-#  NO_PROXY: "$(KUBERNETES_SERVICE_HOST),169.254.169.254,127.0.0.1,localhost,.svc,.cluster.local" #! do not proxy Kubernetes endpoints
+replicas: 2
+
+securityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+
+# Credential Issuer
+credentialIssuer:
+  impersonationProxy:
+    mode: auto
+    externalEndpoint: ""
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "4000"
+      loadBalancerIp: ""

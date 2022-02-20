@@ -2,11 +2,11 @@
 # Supervisor
 # -------------------------------------------------------------------------------------------------
 
-replicas: 2
-
+# Global across all resources
 customLabels:
   mySupervisorCustomLabelName: mySupervisorCustomLabelValue
 
+# Image
 image:
   registry: "pinniped.local"
   repository: "test/build"
@@ -19,65 +19,32 @@ image:
     email: ""
     secretName: "regcred"
 
+# ConfigMap: pinniped.yaml
 config:
   apiGroupSuffix: pinniped.dev
+
+# Deployment
+deployment:
+  labels:
+    deployment.pinniped.dev: supervisor  
+
+replicas: 2
 
 securityContext:
   runAsUser: 65532
   runAsGroup: 65532
 
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: pinniped-supervisor-nodeport
-#   namespace: supervisor
-#   labels:
-#     app: pinniped-supervisor
-#     mySupervisorCustomLabelName: mySupervisorCustomLabelValue
-#   annotations:
-#     kapp.k14s.io/disable-default-label-scoping-rules: ""
-# spec:
-#   type: NodePort
-#   selector:
-#     deployment.pinniped.dev: supervisor
-#   ports:
-#   - name: http
-#     protocol: TCP
-#     port: 80
-#     targetPort: 8080
-#     nodePort: 31234
-#   - name: https
-#     protocol: TCP
-#     port: 443
-#     targetPort: 8443
-#     nodePort: 31243
-
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: pinniped-supervisor-clusterip
-#   namespace: supervisor
-#   labels:
-#     app: pinniped-supervisor
-#     mySupervisorCustomLabelName: mySupervisorCustomLabelValue
-#   annotations:
-#     kapp.k14s.io/disable-default-label-scoping-rules: ""
-# spec:
-#   type: ClusterIP
-#   selector:
-#     deployment.pinniped.dev: supervisor
-#   ports:
-#   - name: https
-#     protocol: TCP
-#     port: 443
-#     targetPort: 8443
-
+# Service
+# This mimics the services used in the pinniped local integration test, where a ClusterIP and NodePort
+# service are created, and the NodePort service has an odd configuration that wouldn't be used in
+# production but needs to be accounted for to make the local integration test work. Note the 
+# "testPort" field.
 service:
   clusterIP:
     enabled: true
     name: https
-    port: 443
     protocol: TCP
+    port: 443
     targetPort: 8443
   nodePort:
     enabled: enabled
@@ -95,6 +62,6 @@ service:
   loadBalancer:
     enabled: false
     name: http
-    port: 8080
     protocol: TCP
+    port: 8080
     targetPort: 8080

@@ -4,7 +4,7 @@ metadata:
   name: local-user-authenticator
   namespace: {{ .Release.Namespace }}
   labels:
-    {{ include "labels" .Values }}
+    app: local-user-authenticator
 spec:
   replicas: {{ .Values.replicas }}
   selector:
@@ -12,8 +12,7 @@ spec:
       app: local-user-authenticator
   template:
     metadata:
-      labels:
-        {{ include "labels" .Values }}
+      labels: {{ include "labels" .Values | nindent 8 }}
     spec:
       securityContext:
         runAsUser: {{ .Values.securityContext.runAsUser }}

@@ -3,8 +3,7 @@ kind: Service
 metadata:
   name: pinniped-concierge-proxy
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{ include "labels" .Values }}
+  labels: {{ include "labels" .Values | nindent 4 }}
   annotations:
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 spec:

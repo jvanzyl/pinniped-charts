@@ -2,8 +2,7 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: pinniped-concierge-impersonation-proxy
-  labels:
-    {{ include "labels" .Values }}
+  labels: {{ include "labels" .Values | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     name: pinniped-concierge-impersonation-proxy

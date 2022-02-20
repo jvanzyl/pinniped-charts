@@ -48,13 +48,6 @@ function sq () {
   done
 }
 
-function labels () {
-  for yaml in $(ls *.yaml); do
-    sed -e 's/app: {{ include \"labels\" }}/{{ include \"labels\" .Values }}/' ${yaml} > tmp
-    mv tmp ${yaml}
-  done
-}
-
 # -------------------------------------------------------------------------------------------------
 # Local User Authenticator
 # -------------------------------------------------------------------------------------------------
@@ -90,17 +83,17 @@ rm -f namespace-local-user-authenticator.yaml
 for yaml in $(ls *.yaml); do
   # Remove all pinniped-concierge namespace references in resources that contain them
   yqr ".metadata.namespace" "{{ .Release.Namespace }}" ${yaml}
-  yqr '.metadata.labels.app' '{{ include \"labels\" }}' ${yaml}
 done
-# Add Go template variables in select templates
+#
+# Deployment
+#
 yqr '.spec.replicas' '{{ .Values.replicas }}' ${localUserAuthenticatorDeployment}
 yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${localUserAuthenticatorDeployment}
 yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${localUserAuthenticatorDeployment}
 yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.securityContext.runAsUser }}' ${localUserAuthenticatorDeployment}
 yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.securityContext.runAsGroup }}' ${localUserAuthenticatorDeployment}
-yqr '.spec.template.metadata.labels.app' '{{ include \"labels\" }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.metadata.labels' '{{ include \"labels\" .Values | nindent 8 }}' ${localUserAuthenticatorDeployment}
 sq
-labels
 cp ${common}/image-pull-secret.yaml .
 cd ..
 echo ">>> Rendering helm templates for ${localUserAuthenticator} ..."
@@ -154,40 +147,40 @@ for yaml in $(ls *.yaml); do
   ${yq} eval -i 'select(.metadata.namespace == "pinniped-concierge").metadata.namespace = "{{ .Release.Namespace }}"' ${yaml}
   ${yq} eval -i 'select(.kind == "APIService").spec.service.namespace = "{{ .Release.Namespace }}"' ${yaml}
   ${yq} eval -i '(select(.kind == "ClusterRoleBinding" or .kind == "RoleBinding").subjects[] | select(.kind == "ServiceAccount").namespace) = "{{ .Release.Namespace }}"' ${yaml}
-  yqr '.metadata.labels.app' '{{ include \"labels\" }}' ${yaml}
+  yqr '.metadata.labels' '{{ include \"labels\" .Values | nindent 4 }}' ${yaml}
 done
+#
 # Deployment
-${yq} eval -i '.spec.replicas = {{ .Values.replicas }}' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].image = "x{{ template \"image\" .Values.image }}x"' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "x{{ .Values.image.pullPolicy }}x"' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsUser = "x{{ .Values.securityContext.runAsUser }}x"' ${conciergeDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = "x{{ .Values.securityContext.runAsGroup }}x"' ${conciergeDeployment}
-${yq} eval -i '.spec.template.metadata.labels.app = "x{{ include \"templateLabels\" }}x"' ${conciergeDeployment}
-sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${conciergeDeployment} > tmp; mv tmp ${conciergeDeployment}
-sed -e 's/app: {{ include "templateLabels" }}/{{ include "templateLabels" .Values }}/' ${conciergeDeployment} > tmp; mv tmp ${conciergeDeployment}
+#
+yqr '.spec.replicas' '{{ .Values.replicas }}' ${conciergeDeployment}
+yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${conciergeDeployment}
+yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${conciergeDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.securityContext.runAsUser }}' ${conciergeDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.securityContext.runAsGroup }}' ${conciergeDeployment}
+yqr '.spec.template.metadata.labels' '{{ include \"deploymentLabels\" .Values | nindent 8 }}' ${conciergeDeployment}
+#
 # ConfigMap
+#
 # The config map is a bit messy. The pinniped.yaml configuration is a string element instead of inline yaml in the released version which 
 # makes it hard to read and substitute values into. This is meh, but it works.
+#
 export config="$(${yq} e '.data."pinniped.yaml"' ${conciergeConfigMap} | sed '/^[[:space:]]*$/d')"
 ${yq} eval -i '.data."pinniped.yaml" = env(config)' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".discovery.url = "x{{ .Values.config.discovery.url }}x"' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".logLevel = "x{{ .Values.config.logLevel }}x"' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.durationSeconds = "x{{ .Values.config.api.servingCertificate.durationSeconds }}x"' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".api.servingCertificate.renewBeforeSeconds = "x{{ .Values.config.api.servingCertificate.renewBeforeSeconds }}x"' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".apiGroupSuffix = "x{{ .Values.config.apiGroupSuffix }}x"' ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".kubeCertAgent.image = "x{{ template \"image\" .Values.image }}x"' ${conciergeConfigMap}
-sed 's/labels: {.*$//' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
-${yq} eval -i '.data."pinniped.yaml".labels.app |= "x{{ include \"labels6\" .Values }}x"' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".discovery.url' '{{ .Values.config.discovery.url }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".logLevel' '{{ .Values.config.logLevel }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".api.servingCertificate.durationSeconds' '{{ .Values.config.api.servingCertificate.durationSeconds | int }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".api.servingCertificate.renewBeforeSeconds' '{{ .Values.config.api.servingCertificate.renewBeforeSeconds | int }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".apiGroupSuffix' '{{ .Values.config.apiGroupSuffix }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".labels' '{{ include \"labels\" .Values | nindent 6 }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".kubeCertAgent.image' '{{ template \"image\" .Values.image }}' ${conciergeConfigMap}
 sed 's/pinniped.yaml\:/pinniped.yaml\: |/' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
-sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
-sed -e 's/app: {{ include "labels6" .Values }}/{{ include "labels6" .Values }}/' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
-
+#
 # CredentialsIssuer / ImpersonationProxy
-${yq} eval -i '.spec.impersonationProxy.mode = "{{ .Values.impersonationProxy.mode }}"' ${conciergeCredentialIssuer}
-${yq} eval -i '.spec.impersonationProxy.service.type = {{ .Values.impersonationProxy.service.type }}' ${conciergeCredentialIssuer}
-${yq} eval -i '.spec.impersonationProxy.service.annotations = {{ .Values.impersonationProxy.service.annotations }}' ${conciergeCredentialIssuer}
+#
+yqr '.spec.impersonationProxy.mode' '{{ .Values.credentialIssuer.impersonationProxy.mode }}' ${conciergeCredentialIssuer}
+yqr '.spec.impersonationProxy.service.type' '{{ .Values.credentialIssuer.impersonationProxy.service.type }}' ${conciergeCredentialIssuer}
+yqr '.spec.impersonationProxy.service.annotations' '{{ include \"nindent8\" .Values.credentialIssuer.impersonationProxy.service.annotations }}' ${conciergeCredentialIssuer}
 sq
-labels
 cp ${common}/image-pull-secret.yaml .
 cd ..
 mkdir -p ${target}/pinniped-concierge/${crdTemplates}
@@ -249,47 +242,43 @@ for yaml in $(ls *.yaml); do
   # Remove all pinniped-supervisor namespace references in resources that contain them
   ${yq} eval -i '.metadata.namespace = "{{ .Release.Namespace }}"' ${yaml}
   ${yq} eval -i '(select(.kind == "RoleBinding").subjects[] | select(.kind == "ServiceAccount").namespace) = "{{ .Release.Namespace }}"' ${yaml}
-  yqr '.metadata.labels.app' '{{ include \"labels\" }}' ${yaml}
+  yqr '.metadata.labels' '{{ include \"labels\" .Values | nindent 4 }}' ${yaml}
 done
+#
 # Deployment
-${yq} eval -i '.spec.replicas = {{ .Values.replicas }}' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].image = "x{{ template \"image\" .Values.image }}x"' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.containers[0].imagePullPolicy = "x{{ .Values.image.pullPolicy }}x"' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsUser = "x{{ .Values.securityContext.runAsUser }}x"' ${supervisorDeployment}
-${yq} eval -i '.spec.template.spec.securityContext.runAsGroup = "x{{ .Values.securityContext.runAsGroup }}x"' ${supervisorDeployment}
-${yq} eval -i '.spec.template.metadata.labels.app = "x{{ include \"templateLabels\" }}x"' ${supervisorDeployment}
-sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${supervisorDeployment} > tmp; mv tmp ${supervisorDeployment}
-sed -e 's/app: {{ include "templateLabels" }}/{{ include "templateLabels" .Values }}/' ${supervisorDeployment} > tmp; mv tmp ${supervisorDeployment}
+#
+yqr '.spec.replicas' '{{ .Values.replicas }}' ${supervisorDeployment}
+yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${supervisorDeployment}
+yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${supervisorDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.securityContext.runAsUser }}' ${supervisorDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.securityContext.runAsGroup }}' ${supervisorDeployment}
+yqr '.spec.template.metadata.labels' '{{ include \"deploymentLabels\" .Values | nindent 8 }}' ${supervisorDeployment}
+#
 # ConfigMap
-sed -e 's/pinniped.yaml: |/pinniped.yaml: /' ${supervisorConfigMap} > tmp
-${yq} eval -i '.data."pinniped.yaml".apiGroupSuffix = {{ .Values.config.apiGroupSuffix }}' tmp
-${yq} eval -i '.data."pinniped.yaml".labels.app |= "x{{ include \"labels6\" .Values }}x"' tmp
-sed -e 's/x{{/{{/' -e 's/}}x/}}/' tmp > ${supervisorConfigMap}
-sed -e 's/app: {{ include "labels6" .Values }}/{{ include "labels6" .Values }}/' ${supervisorConfigMap} > tmp
-sed -e 's/pinniped.yaml:/pinniped.yaml: |/' tmp > ${supervisorConfigMap} 
-rm tmp
+#
+sed -e 's/pinniped.yaml: |/pinniped.yaml: /' ${supervisorConfigMap} > tmp; mv tmp ${supervisorConfigMap}
+yqr '.data."pinniped.yaml".apiGroupSuffix' '{{ .Values.config.apiGroupSuffix }}' ${supervisorConfigMap}
+yqr '.data."pinniped.yaml".labels' '{{ include \"labels\" .Values | nindent 6 }}' ${supervisorConfigMap}
+sed -e 's/pinniped.yaml:/pinniped.yaml: |/' ${supervisorConfigMap} > tmp; mv tmp ${supervisorConfigMap}
 #
 # Service: generate a single file with the various service options which are controlled by configuration in the values.yaml
 #
 serviceClusterIp=service-pinniped-supervisor-clusterip.yaml
-${yq} eval -i '.spec.ports[0].name = "x{{ .Values.service.clusterIP.name }}x"' ${serviceClusterIp}
-${yq} eval -i '.spec.ports[0].protocol = "x{{ .Values.service.clusterIP.protocol }}x"' ${serviceClusterIp}
-${yq} eval -i '.spec.ports[0].targetPort = "x{{ .Values.service.clusterIP.port }}x"' ${serviceClusterIp}
-${yq} eval -i '.spec.ports[0].port = "x{{ .Values.service.clusterIP.targetPort }}x"' ${serviceClusterIp}
-sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${serviceClusterIp} > tmp; mv tmp ${serviceClusterIp}
+yqr '.spec.ports[0].name' '{{ .Values.service.clusterIP.name }}' ${serviceClusterIp}
+yqr '.spec.ports[0].protocol' '{{ .Values.service.clusterIP.protocol }}' ${serviceClusterIp}
+yqr '.spec.ports[0].port' '{{ .Values.service.clusterIP.port }}' ${serviceClusterIp}
+yqr '.spec.ports[0].targetPort' '{{ .Values.service.clusterIP.targetPort }}' ${serviceClusterIp}
 serviceNodePort=service-pinniped-supervisor-nodeport.yaml
-${yq} eval -i '.spec.ports[0].name = "x{{ .Values.service.nodePort.name }}x"' ${serviceNodePort}
-${yq} eval -i '.spec.ports[0].protocol = "x{{ .Values.service.nodePort.protocol }}x"' ${serviceNodePort}
-${yq} eval -i '.spec.ports[0].port = "x{{ .Values.service.nodePort.port }}x"' ${serviceNodePort}
-${yq} eval -i '.spec.ports[0].targetPort = "x{{ .Values.service.nodePort.targetPort }}x"' ${serviceNodePort}
-${yq} eval -i '.spec.ports[0].nodePort = "x{{ .Values.service.nodePort.nodePort }}x"' ${serviceNodePort}
-sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${serviceNodePort} > tmp; mv tmp ${serviceNodePort}
+yqr '.spec.ports[0].name' '{{ .Values.service.nodePort.name }}' ${serviceNodePort}
+yqr '.spec.ports[0].protocol' '{{ .Values.service.nodePort.protocol }}' ${serviceNodePort}
+yqr '.spec.ports[0].port' '{{ .Values.service.nodePort.port }}' ${serviceNodePort}
+yqr '.spec.ports[0].targetPort' '{{ .Values.service.nodePort.targetPort }}' ${serviceNodePort}
+yqr '.spec.ports[0].nodePort' '{{ .Values.service.nodePort.nodePort }}' ${serviceNodePort}
 serviceLoadBalancer=service-pinniped-supervisor-loadbalancer.yaml
-${yq} eval -i '.spec.ports[0].name = "x{{ .Values.service.loadBalancer.name }}x"' ${serviceLoadBalancer}
-${yq} eval -i '.spec.ports[0].protocol = "x{{ .Values.service.loadBalancer.protocol }}x"' ${serviceLoadBalancer}
-${yq} eval -i '.spec.ports[0].targetPort = "x{{ .Values.service.loadBalancer.port }}x"' ${serviceLoadBalancer}
-${yq} eval -i '.spec.ports[0].port = "x{{ .Values.service.loadBalancer.targetPort }}x"' ${serviceLoadBalancer}
-sed -e 's/x{{/{{/' -e 's/}}x/}}/' ${serviceLoadBalancer} > tmp; mv tmp ${serviceLoadBalancer}
+yqr '.spec.ports[0].name' '{{ .Values.service.loadBalancer.name }}' ${serviceLoadBalancer}
+yqr '.spec.ports[0].protocol' '{{ .Values.service.loadBalancer.protocol }}' ${serviceLoadBalancer}
+yqr '.spec.ports[0].port' '{{ .Values.service.loadBalancer.port }}' ${serviceLoadBalancer}
+yqr '.spec.ports[0].targetPort' '{{ .Values.service.loadBalancer.targetPort }}' ${serviceLoadBalancer}
 service="service-pinniped-supervisor.yaml"
 echo '{{- if .Values.service.clusterIP.enabled }}' >> ${service}
 cat ${serviceClusterIp} >> ${service}
@@ -317,7 +306,6 @@ rm ${serviceClusterIp}
 rm ${serviceNodePort}
 rm ${serviceLoadBalancer}
 sq
-labels
 cp ${common}/image-pull-secret.yaml .
 cd ..
 mkdir -p ${target}/pinniped-supervisor/${crdTemplates}
@@ -341,6 +329,19 @@ echo
 helm lint ${charts}/${concierge}
 echo
 helm lint ${charts}/${supervisor}
+
+# Dyff currently doesn't canonically compare data elements in a configmap, so we'll extract
+# them and give dyff something it can compare.
+function pinnipedConfigDiff () {
+  app=${1}
+  helm=${2}
+  ytt=${3}
+  configHelm="${app}-config-helm.yaml"
+  configYtt="${app}-config-ytt.yaml"
+  yq e '.data."pinniped.yaml"' ${helm} > ${configHelm}
+  yq e '.data."pinniped.yaml"' ${ytt} > ${configYtt}
+  dyff between ${configHelm} ${configYtt}
+}
 
 # -------------------------------------------------------------------------------------------------
 # Dyff
@@ -367,7 +368,11 @@ cd ${target}/${concierge}
 for file in $(ls ${templatesRendered}); do
   helm="${templatesRendered}/${file}"
   ytt="${templatesYtt}/${file}"
-  dyff between ${helm} ${ytt}
+  if [ "${file}" = "configmap-pinniped-concierge-config.yaml" ]; then
+    pinnipedConfigDiff "pinniped-concierge" ${helm} ${ytt}
+  else
+    dyff between ${helm} ${ytt}
+  fi
 done
 cd -
 
@@ -380,11 +385,15 @@ cd ${target}/${supervisor}
 for file in $(ls ${templatesRendered}); do
   helm="${templatesRendered}/${file}"
   ytt="${templatesYtt}/${file}"
-  # Account for the different in rendered file name
-  if [ "${file}" = "service-pinniped-supervisor.yaml" ]; then
-    dyff between ${templatesRendered}/${file} ${templatesYtt}/service-pinniped-supervisor-clusterip.yaml
+  if [ "${file}" = "configmap-pinniped-supervisor-static-config.yaml" ]; then
+    pinnipedConfigDiff "pinniped-supervisor" ${helm} ${ytt}
   else
-    dyff between ${helm} ${ytt}
+    # Account for the different in rendered file name
+    if [ "${file}" = "service-pinniped-supervisor.yaml" ]; then
+      dyff between ${templatesRendered}/${file} ${templatesYtt}/service-pinniped-supervisor-clusterip.yaml
+    else
+      dyff between ${helm} ${ytt}
+    fi
   fi
 done
 cd -

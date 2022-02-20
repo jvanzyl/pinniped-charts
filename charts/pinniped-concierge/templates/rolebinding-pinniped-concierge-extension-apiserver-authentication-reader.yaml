@@ -3,8 +3,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: pinniped-concierge-extension-apiserver-authentication-reader
   namespace: kube-system
-  labels:
-    {{ include "labels" .Values }}
+  labels: {{ include "labels" .Values | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     name: pinniped-concierge

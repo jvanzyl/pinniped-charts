@@ -2,8 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: pinniped-concierge-aggregated-api-server
-  labels:
-    {{ include "labels" .Values }}
+  labels: {{ include "labels" .Values | nindent 4 }}
 rules:
   - apiGroups:
       - ""

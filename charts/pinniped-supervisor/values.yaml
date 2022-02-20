@@ -2,11 +2,12 @@
 # Supervisor
 # -------------------------------------------------------------------------------------------------
 
-replicas: 2
-
+# Global across all resources
 customLabels: {}
+nameOverride: ""
+fullnameOverride: ""
 
-# https://blog.andyserver.com/2021/09/adding-image-digest-references-to-your-helm-charts/
+# Image
 image:
   registry: "projects.registry.vmware.com"
   repository: "pinniped/pinniped-server"
@@ -20,16 +21,22 @@ image:
     email: ""
     secretName: "regcred"
 
-nameOverride: ""
-fullnameOverride: ""
-
+# ConfigMap: pinniped.yaml
 config:
   apiGroupSuffix: pinniped.dev
+
+# Deployment
+deployment:
+  labels:
+    deployment.pinniped.dev: supervisor  
+
+replicas: 2
 
 securityContext:
   runAsUser: 65532
   runAsGroup: 65532
 
+# Service
 service:
   clusterIP:
     enabled: true

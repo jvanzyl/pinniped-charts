@@ -3,12 +3,10 @@ kind: ConfigMap
 metadata:
   name: pinniped-supervisor-static-config
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{ include "labels" .Values }}
+  labels: {{ include "labels" .Values | nindent 4 }}
 data:
   pinniped.yaml: |
-    apiGroupSuffix: pinniped.dev
+    apiGroupSuffix: {{ .Values.config.apiGroupSuffix }}
     names:
       defaultTLSCertificateSecret: pinniped-supervisor-default-tls-certificate
-    labels:
-      {{ include "labels6" .Values }}
+    labels: {{ include "labels" .Values | nindent 6 }}

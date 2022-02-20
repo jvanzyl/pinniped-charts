@@ -3,8 +3,6 @@ kind: Role
 metadata:
   name: local-user-authenticator
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{ include "labels" .Values }}
 rules:
   - apiGroups:
       - ""

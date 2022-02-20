@@ -2,8 +2,7 @@ apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
   name: v1alpha1.login.concierge.pinniped.dev
-  labels:
-    {{ include "labels" .Values }}
+  labels: {{ include "labels" .Values | nindent 4 }}
 spec:
   version: v1alpha1
   group: login.concierge.pinniped.dev

@@ -1,6 +1,6 @@
 # Pinniped Helm Charts
 
-A very nascent version of [Pinniped][1] Helm charts for Concierge, Supervisor and the Local User Authenticator. 
+A very nascent version of [Pinniped][1] Helm charts for Concierge, Supervisor and the Local User Authenticator.
 
 Process to generate the charts:
 
@@ -15,10 +15,10 @@ To be sure, if you look at the shell script to produce the charts you will cry. 
 
 ## Todo
 
-- [ ] Run the local Pinniped integration test. In theory this should work given the manifests produced by the two paths are identical (save for one).
-- [ ] Figure out why the remaining single manifest does not register as canonically identical. I have added to an existing issue with Dyff here: https://github.com/homeport/dyff/issues/171
 - [ ] Determine the structure of the Helm `values.yaml` files for each chart. This definitely needs work, I just plugged in values to achieve parity in the comparison.
 - [ ] Generate a `values.schema.json` for each chart.
+- [x] Run the local Pinniped integration test. In theory this should work given the manifests produced by the two paths are identical (save for one).
+- [x] Figure out why the remaining single manifest does not register as canonically identical. I have added to an existing issue with Dyff here: https://github.com/homeport/dyff/issues/171
 - [x] Add a named template for optionally injecting image pull secrets.
 
 ## Assumptions for Helm chart generation

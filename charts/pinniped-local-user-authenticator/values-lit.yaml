@@ -2,8 +2,7 @@
 # Local User Authenticator
 # -------------------------------------------------------------------------------------------------
 
-replicas: 1
-
+# Image
 image:
   registry: "pinniped.local"
   repository: "test/build"
@@ -15,6 +14,9 @@ image:
     password: ""
     email: ""
     secretName: "regcred"
+
+# Deployment
+replicas: 1
 
 securityContext:
   runAsUser: 65532
