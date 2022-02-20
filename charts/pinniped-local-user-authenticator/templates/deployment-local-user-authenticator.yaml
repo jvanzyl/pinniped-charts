@@ -6,7 +6,7 @@ metadata:
   labels:
     app: local-user-authenticator
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.deployment.replicas }}
   selector:
     matchLabels:
       app: local-user-authenticator
@@ -15,8 +15,8 @@ spec:
       labels: {{ include "labels" .Values | nindent 8 }}
     spec:
       securityContext:
-        runAsUser: {{ .Values.securityContext.runAsUser }}
-        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsUser: {{ .Values.deployment.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.deployment.securityContext.runAsGroup }}
       serviceAccountName: local-user-authenticator
       containers:
         - name: local-user-authenticator

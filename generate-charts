@@ -87,11 +87,11 @@ done
 #
 # Deployment
 #
-yqr '.spec.replicas' '{{ .Values.replicas }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.replicas' '{{ .Values.deployment.replicas }}' ${localUserAuthenticatorDeployment}
 yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${localUserAuthenticatorDeployment}
 yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${localUserAuthenticatorDeployment}
-yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.securityContext.runAsUser }}' ${localUserAuthenticatorDeployment}
-yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.securityContext.runAsGroup }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.deployment.securityContext.runAsUser }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.deployment.securityContext.runAsGroup }}' ${localUserAuthenticatorDeployment}
 yqr '.spec.template.metadata.labels' '{{ include \"labels\" .Values | nindent 8 }}' ${localUserAuthenticatorDeployment}
 sq
 cp ${common}/image-pull-secret.yaml .
@@ -152,11 +152,11 @@ done
 #
 # Deployment
 #
-yqr '.spec.replicas' '{{ .Values.replicas }}' ${conciergeDeployment}
+yqr '.spec.replicas' '{{ .Values.deployment.replicas }}' ${conciergeDeployment}
 yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${conciergeDeployment}
 yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${conciergeDeployment}
-yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.securityContext.runAsUser }}' ${conciergeDeployment}
-yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.securityContext.runAsGroup }}' ${conciergeDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.deployment.securityContext.runAsUser }}' ${conciergeDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.deployment.securityContext.runAsGroup }}' ${conciergeDeployment}
 yqr '.spec.template.metadata.labels' '{{ include \"deploymentLabels\" .Values | nindent 8 }}' ${conciergeDeployment}
 #
 # ConfigMap
@@ -247,11 +247,11 @@ done
 #
 # Deployment
 #
-yqr '.spec.replicas' '{{ .Values.replicas }}' ${supervisorDeployment}
+yqr '.spec.replicas' '{{ .Values.deployment.replicas }}' ${supervisorDeployment}
 yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${supervisorDeployment}
 yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${supervisorDeployment}
-yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.securityContext.runAsUser }}' ${supervisorDeployment}
-yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.securityContext.runAsGroup }}' ${supervisorDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.deployment.securityContext.runAsUser }}' ${supervisorDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.deployment.securityContext.runAsGroup }}' ${supervisorDeployment}
 yqr '.spec.template.metadata.labels' '{{ include \"deploymentLabels\" .Values | nindent 8 }}' ${supervisorDeployment}
 #
 # ConfigMap

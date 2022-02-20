@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels: {{ include "labels" .Values | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.deployment.replicas }}
   selector:
     matchLabels:
       app: pinniped-supervisor
@@ -14,8 +14,8 @@ spec:
       labels: {{ include "deploymentLabels" .Values | nindent 8 }}
     spec:
       securityContext:
-        runAsUser: {{ .Values.securityContext.runAsUser }}
-        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsUser: {{ .Values.deployment.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.deployment.securityContext.runAsGroup }}
       serviceAccountName: pinniped-supervisor
       containers:
         - name: pinniped-supervisor

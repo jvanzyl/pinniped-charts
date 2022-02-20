@@ -25,14 +25,12 @@ config:
 
 # Deployment
 deployment:
+  replicas: 2
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
   labels:
     deployment.pinniped.dev: supervisor  
-
-replicas: 2
-
-securityContext:
-  runAsUser: 65532
-  runAsGroup: 65532
 
 # Service
 # This mimics the services used in the pinniped local integration test, where a ClusterIP and NodePort

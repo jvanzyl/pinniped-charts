@@ -46,16 +46,14 @@ config:
 
 # Deployment
 deployment:
+  replicas: 2
+  securityContext:
+    # specifies the user ID that will own the process, see the Dockerfile for the reasoning behind this choice
+    runAsUser: 65532
+    # specifies the group ID that will own the process, see the Dockerfile for the reasoning behind this choice
+    runAsGroup: 65532
   labels:
     deployment.pinniped.dev: concierge  
-
-replicas: 2
-
-securityContext:
-  # specifies the user ID that will own the process, see the Dockerfile for the reasoning behind this choice
-  runAsUser: 65532
-  # specifies the group ID that will own the process, see the Dockerfile for the reasoning behind this choice
-  runAsGroup: 65532
 
 # Credential Issuer
 credentialIssuer:

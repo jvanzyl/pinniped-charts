@@ -16,8 +16,8 @@ image:
     secretName: "regcred"
 
 # Deployment
-replicas: 1
-
-securityContext:
-  runAsUser: 65532
-  runAsGroup: 65532
+deployment:
+  replicas: 1
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532

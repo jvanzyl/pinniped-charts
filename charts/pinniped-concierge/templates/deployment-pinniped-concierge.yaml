@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels: {{ include "labels" .Values | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.deployment.replicas }}
   selector:
     matchLabels:
       app: pinniped-concierge
@@ -16,8 +16,8 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ""
     spec:
       securityContext:
-        runAsUser: {{ .Values.securityContext.runAsUser }}
-        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsUser: {{ .Values.deployment.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.deployment.securityContext.runAsGroup }}
       serviceAccountName: pinniped-concierge
       containers:
         - name: pinniped-concierge
