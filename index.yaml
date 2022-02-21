@@ -3,6 +3,15 @@ entries:
   pinniped-concierge:
   - apiVersion: v2
     appVersion: 0.14.0-55-g6491742c
+    created: "2022-02-21T01:27:29.250877154Z"
+    description: A Helm chart for Pinniped Concierge
+    digest: 989131f45f02740012d112c93ec305733feb52684b85e0540a49c277f630a08e
+    name: pinniped-concierge
+    urls:
+    - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-concierge-0.0.18/pinniped-concierge-0.0.18.tgz
+    version: 0.0.18
+  - apiVersion: v2
+    appVersion: 0.14.0-55-g6491742c
     created: "2022-02-21T00:46:37.694490386Z"
     description: A Helm chart for Pinniped Concierge
     digest: 923f3d28e107acba899be98e3c9d2ed0b9997ae57b8f2438238b3b2ad1fbfdba
@@ -29,6 +38,15 @@ entries:
     - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-concierge-0.0.15/pinniped-concierge-0.0.15.tgz
     version: 0.0.15
   pinniped-local-user-authenticator:
+  - apiVersion: v2
+    appVersion: 0.14.0-55-g6491742c
+    created: "2022-02-21T01:27:29.408433Z"
+    description: A Helm chart for Pinniped Local User Authenticator
+    digest: 606060678c959ff5909b6b9321e047e4ec41f396d70ef0c2a6ee1ef28e2309e2
+    name: pinniped-local-user-authenticator
+    urls:
+    - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-local-user-authenticator-0.0.18/pinniped-local-user-authenticator-0.0.18.tgz
+    version: 0.0.18
   - apiVersion: v2
     appVersion: 0.14.0-55-g6491742c
     created: "2022-02-21T00:46:37.809771806Z"
@@ -59,6 +77,15 @@ entries:
   pinniped-supervisor:
   - apiVersion: v2
     appVersion: 0.14.0-55-g6491742c
+    created: "2022-02-21T01:27:29.558109134Z"
+    description: A Helm chart for Pinniped Supervisor
+    digest: 9bbe4e2c18e474e6bed68f99c490911c66fdb46bfba9148fe3a6910405ae4deb
+    name: pinniped-supervisor
+    urls:
+    - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-supervisor-0.0.18/pinniped-supervisor-0.0.18.tgz
+    version: 0.0.18
+  - apiVersion: v2
+    appVersion: 0.14.0-55-g6491742c
     created: "2022-02-21T00:46:37.926849447Z"
     description: A Helm chart for Pinniped Supervisor
     digest: 4e2b5b5e2fa6a7b2fd48e48528884577b2359784400124a0e08a9768571a5a08
@@ -84,4 +111,4 @@ entries:
     urls:
     - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-supervisor-0.0.15/pinniped-supervisor-0.0.15.tgz
     version: 0.0.15
-generated: "2022-02-21T00:46:37.926880148Z"
+generated: "2022-02-21T01:27:29.558151535Z"
