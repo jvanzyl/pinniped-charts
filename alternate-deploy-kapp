@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# Extension that hooks into a small extension point in the Pinniped prepare-for-integration-tests.sh script
+# that allows us to use Helm (in various modes) to deploy to the local pinniped-kind cluster used for the
+# local integration tests.
+
+cd "$(dirname "$0")"
+
+app=${1}
+# tag is fed in from the prepare-for-integration-tests.sh script, just uuidgen to identify a 
+# specific docker build of the pinniped-server image.
+tag=${2}
+
+if [ "${app}" = "local-user-authenticator" ]; then
+  mkdir -p target/charts
+  cp -r charts/pinniped-local-user-authenticator target/charts
+  helm template \
+    --values source/pinniped-local-user-authenticator/values-lit.yaml \
+    --set image.version=${tag} \
+    --output-dir target/lit \
+    --namespace local-user-authenticator target/charts/pinniped-local-user-authenticator  
+  
+  cd target/lit/pinniped-local-user-authenticator/templates
+  kubectl create namespace local-user-authenticator --dry-run=client -o yaml | kubectl apply -f -
+  ytt --file . | kapp deploy --yes --app local-user-authenticator --diff-changes --file -
+fi
+
+if [ "${app}" = "pinniped-supervisor" ]; then
+  mkdir -p target/charts
+  cp -r charts/pinniped-supervisor target/charts
+  cp target/pinniped-supervisor/crds.helm/*.yaml target/charts/pinniped-supervisor/templates
+  helm template \
+    --values source/pinniped-supervisor/values-lit.yaml \
+    --set image.version=${tag} \
+    --output-dir target/lit \
+    --namespace supervisor target/charts/pinniped-supervisor
+
+  cd target/lit/pinniped-supervisor/templates
+  kubectl create namespace supervisor --dry-run=client -o yaml | kubectl apply -f -
+  ytt --file . | kapp deploy --yes --app pinniped-supervisor --diff-changes --file -
+fi
+
+if [ "${app}" = "pinniped-concierge" ]; then
+  discovery_url="$(TERM=dumb kubectl cluster-info | awk '/master|control plane/ {print $NF}')"
+  mkdir -p target/charts
+  cp -r charts/pinniped-concierge target/charts
+  cp target/pinniped-concierge/crds.helm/*.yaml target/charts/pinniped-concierge/templates
+  helm --debug template \
+    --values source/pinniped-concierge/values-lit.yaml \
+    --set image.version=${tag} \
+    --set config.discovery.url=${discovery_url} \
+    --set config.logLevel="debug" \
+    --output-dir target/lit \
+    --namespace concierge target/charts/pinniped-concierge
+      
+  cd target/lit/pinniped-concierge/templates
+  kubectl create namespace concierge --dry-run=client -o yaml | kubectl apply -f -
+  ytt --file . | kapp deploy --yes --app pinniped-concierge --diff-changes --file -
+fi

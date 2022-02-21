@@ -1,0 +1,49 @@
+# -------------------------------------------------------------------------------------------------
+# Concierge
+# -------------------------------------------------------------------------------------------------
+
+# Global across all resources
+customLabels:
+  myConciergeCustomLabelName: myConciergeCustomLabelValue
+
+# Image
+image:
+  registry: "pinniped.local"
+  repository: "test/build"
+  version: "latest"
+  pullPolicy: IfNotPresent
+  credentials:
+    enabled: false
+    username: ""
+    password: ""
+    email: ""
+    secretName: "regcred"
+
+# ConfigMap: pinniped.yaml
+config:
+  api:
+    servingCertificate:
+      durationSeconds: 2592000
+      renewBeforeSeconds: 2160000
+  apiGroupSuffix: pinniped.dev
+  logLevel: debug
+
+# Deployment
+deployment:
+  replicas: 2
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+  labels:
+    deployment.pinniped.dev: concierge
+
+# Credential Issuer
+credentialIssuer:
+  impersonationProxy:
+    mode: auto
+    externalEndpoint: ""
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "4000"
+      loadBalancerIp: ""

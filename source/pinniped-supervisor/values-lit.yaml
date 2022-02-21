@@ -1,0 +1,65 @@
+# -------------------------------------------------------------------------------------------------
+# Supervisor
+# -------------------------------------------------------------------------------------------------
+
+# Global across all resources
+customLabels:
+  mySupervisorCustomLabelName: mySupervisorCustomLabelValue
+
+# Image
+image:
+  registry: "pinniped.local"
+  repository: "test/build"
+  version: "latest"
+  pullPolicy: IfNotPresent
+  credentials:
+    enabled: false
+    username: ""
+    password: ""
+    email: ""
+    secretName: "regcred"
+
+# ConfigMap: pinniped.yaml
+config:
+  apiGroupSuffix: pinniped.dev
+
+# Deployment
+deployment:
+  replicas: 2
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+  labels:
+    deployment.pinniped.dev: supervisor  
+
+# Service
+# This mimics the services used in the pinniped local integration test, where a ClusterIP and NodePort
+# service are created, and the NodePort service has an odd configuration that wouldn't be used in
+# production but needs to be accounted for to make the local integration test work. Note the 
+# "testPort" field.
+service:
+  clusterIP:
+    enabled: true
+    name: https
+    protocol: TCP
+    port: 443
+    targetPort: 8443
+  nodePort:
+    enabled: enabled
+    name: https
+    protocol: TCP
+    port: 443
+    targetPort: 8443       
+    nodePort: 31243
+    testPort: 
+      name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 31234
+  loadBalancer:
+    enabled: false
+    name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080

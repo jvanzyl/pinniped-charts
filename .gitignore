@@ -1,0 +1,8 @@
+# Generated
+target/
+# Downloaded
+*.tar.gz
+# Executables used for conversion
+kubectl*
+yq
+dyff

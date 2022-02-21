@@ -1,0 +1,56 @@
+# -------------------------------------------------------------------------------------------------
+# Supervisor
+# -------------------------------------------------------------------------------------------------
+
+# Global across all resources
+customLabels: {}
+nameOverride: ""
+fullnameOverride: ""
+
+# Image
+image:
+  registry: "projects.registry.vmware.com"
+  repository: "pinniped/pinniped-server"
+  version: "latest"
+  #version: "sha256:f3c4fdfd3ef865d4b97a1fd295d94acc3f0c654c46b6f27ffad5cf80216903c8"
+  pullPolicy: IfNotPresent
+  credentials:
+    enabled: false
+    username: ""
+    password: ""
+    email: ""
+    secretName: "regcred"
+
+# ConfigMap: pinniped.yaml
+config:
+  apiGroupSuffix: pinniped.dev
+
+# Deployment
+deployment:
+  replicas: 2
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+  labels:
+    deployment.pinniped.dev: supervisor  
+
+# Service
+service:
+  clusterIP:
+    enabled: true
+    name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  nodePort:
+    enabled: false
+    name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  loadBalancer:
+    enabled: false
+    name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080

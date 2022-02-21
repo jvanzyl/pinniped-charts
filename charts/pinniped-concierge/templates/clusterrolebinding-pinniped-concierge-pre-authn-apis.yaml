@@ -1,0 +1,16 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pinniped-concierge-pre-authn-apis
+  labels: {{ include "labels" .Values | nindent 4 }}
+subjects:
+  - kind: Group
+    name: system:authenticated
+    apiGroup: rbac.authorization.k8s.io
+  - kind: Group
+    name: system:unauthenticated
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: pinniped-concierge-pre-authn-apis
+  apiGroup: rbac.authorization.k8s.io

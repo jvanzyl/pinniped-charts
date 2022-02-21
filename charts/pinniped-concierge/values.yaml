@@ -1,0 +1,67 @@
+# -------------------------------------------------------------------------------------------------
+# Concierge
+# -------------------------------------------------------------------------------------------------
+
+# Global across all resources
+customLabels: {}
+nameOverride: ""
+fullnameOverride: ""
+
+# Image
+image:
+  registry: "projects.registry.vmware.com"
+  repository: "pinniped/pinniped-server"
+  version: "latest"
+  #version: "sha256:f3c4fdfd3ef865d4b97a1fd295d94acc3f0c654c46b6f27ffad5cf80216903c8"
+  pullPolicy: IfNotPresent
+  credentials:
+    enabled: false
+    username: ""
+    password: ""
+    email: ""
+    secretName: "regcred"
+
+# ConfigMap: pinniped.yaml
+config:
+  # Pinniped will try to guess the right K8s API URL for sharing that information with potential clients.
+  discovery:
+    url: "null"
+  api:
+    servingCertificate:
+      # Specify the duration and renewal interval for the API serving certificate.
+      # The defaults are set to expire the cert about every 30 days, and to rotate it
+      # about every 25 days.
+      durationSeconds: 2592000
+      renewBeforeSeconds: 2160000
+  # Specify the API group suffix for all Pinniped API groups. By default, this is set to
+  # pinniped.dev, so Pinniped API groups will look like foo.pinniped.dev,
+  # authentication.concierge.pinniped.dev, etc. As an example, if this is set to tuna.io, then
+  # Pinniped API groups will look like foo.tuna.io. authentication.concierge.tuna.io, etc.
+  apiGroupSuffix: pinniped.dev
+  # needs to be enabled in templates
+  # aggregatedAPIServerPort: 10250
+  # needs to be enabled in templates
+  # impersonationProxyServerPort: 8444
+  logLevel: info
+
+# Deployment
+deployment:
+  replicas: 2
+  securityContext:
+    # specifies the user ID that will own the process, see the Dockerfile for the reasoning behind this choice
+    runAsUser: 65532
+    # specifies the group ID that will own the process, see the Dockerfile for the reasoning behind this choice
+    runAsGroup: 65532
+  labels:
+    deployment.pinniped.dev: concierge
+
+# Credential Issuer
+credentialIssuer:
+  impersonationProxy:
+    mode: auto
+    externalEndpoint: ""
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "4000"
+      loadBalancerIp: ""

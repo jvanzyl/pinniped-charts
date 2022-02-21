@@ -1,0 +1,68 @@
+{{- if .Values.service.clusterIP.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinniped-supervisor-clusterip
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "labels" .Values | nindent 4 }}
+  annotations:
+    kapp.k14s.io/disable-default-label-scoping-rules: ""
+spec:
+  type: ClusterIP
+  selector:
+    deployment.pinniped.dev: supervisor
+  ports:
+    - name: {{ .Values.service.clusterIP.name }}
+      protocol: {{ .Values.service.clusterIP.protocol }}
+      port: {{ .Values.service.clusterIP.port }}
+      targetPort: {{ .Values.service.clusterIP.targetPort }}
+{{- end }}
+{{- if .Values.service.nodePort.enabled }}
+{{- if .Values.service.clusterIP.enabled }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinniped-supervisor-nodeport
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "labels" .Values | nindent 4 }}
+  annotations:
+    kapp.k14s.io/disable-default-label-scoping-rules: ""
+spec:
+  type: NodePort
+  selector:
+    deployment.pinniped.dev: supervisor
+  ports:
+    - name: {{ .Values.service.nodePort.name }}
+      protocol: {{ .Values.service.nodePort.protocol }}
+      port: {{ .Values.service.nodePort.port }}
+      targetPort: {{ .Values.service.nodePort.targetPort }}
+      nodePort: {{ .Values.service.nodePort.nodePort }}
+{{- if .Values.service.nodePort.testPort }}
+    - name: {{ .Values.service.nodePort.testPort.name }}
+      protocol: {{ .Values.service.nodePort.testPort.protocol }}
+      port: {{ .Values.service.nodePort.testPort.port }}
+      targetPort: {{ .Values.service.nodePort.testPort.targetPort }}
+      nodePort: {{ .Values.service.nodePort.testPort.nodePort }}
+{{- end }}
+{{- end }}
+{{- if .Values.service.loadBalancer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinniped-supervisor-loadbalancer
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "labels" .Values | nindent 4 }}
+  annotations:
+    kapp.k14s.io/disable-default-label-scoping-rules: ""
+spec:
+  type: LoadBalancer
+  selector:
+    deployment.pinniped.dev: supervisor
+  ports:
+    - name: {{ .Values.service.loadBalancer.name }}
+      protocol: {{ .Values.service.loadBalancer.protocol }}
+      port: {{ .Values.service.loadBalancer.port }}
+      targetPort: {{ .Values.service.loadBalancer.targetPort }}
+{{- end }}

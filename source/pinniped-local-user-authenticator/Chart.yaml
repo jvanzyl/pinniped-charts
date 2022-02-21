@@ -1,0 +1,5 @@
+apiVersion: "v2"
+name: "pinniped-local-user-authenticator"
+description: "A Helm chart for Pinniped Local User Authenticator"
+version: "0.0.1"
+appVersion: "1.16.0"

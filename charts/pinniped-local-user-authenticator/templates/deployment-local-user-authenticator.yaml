@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-user-authenticator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: local-user-authenticator
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: local-user-authenticator
+  template:
+    metadata:
+      labels: {{ include "labels" .Values | nindent 8 }}
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.deployment.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.deployment.securityContext.runAsGroup }}
+      serviceAccountName: local-user-authenticator
+      containers:
+        - name: local-user-authenticator
+          image: {{ template "image" .Values.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - local-user-authenticator

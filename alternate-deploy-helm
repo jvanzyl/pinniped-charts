@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")"
+
+app=${1}
+# tag is fed in from the prepare-for-integration-tests.sh script, just uuidgen to identify a 
+# specific docker build of the pinniped-server image.
+tag=${2}
+
+if [ "${app}" = "local-user-authenticator" ]; then
+  helm upgrade pinniped-local-user-authenticator charts/pinniped-local-user-authenticator \
+    --install \
+    --values source/pinniped-local-user-authenticator/values-lit.yaml \
+    --set image.version=${tag} \
+    --namespace local-user-authenticator \
+    --create-namespace \
+    --atomic
+fi
+
+if [ "${app}" = "pinniped-supervisor" ]; then
+  helm upgrade pinniped-supervisor charts/pinniped-supervisor \
+    --install \
+    --values source/pinniped-supervisor/values-lit.yaml \
+    --set image.version=${tag} \
+    --namespace supervisor \
+    --create-namespace \
+    --atomic
+fi
+
+if [ "${app}" = "pinniped-concierge" ]; then
+  discovery_url="$(TERM=dumb kubectl cluster-info | awk '/master|control plane/ {print $NF}')"
+  helm upgrade pinniped-concierge charts/pinniped-concierge \
+    --install \
+    --values source/pinniped-concierge/values-lit.yaml \
+    --set image.version=${tag} \
+    --set config.discovery.url=${discovery_url} \
+    --set config.logLevel="debug" \
+    --namespace concierge \
+    --create-namespace \
+    --atomic
+fi

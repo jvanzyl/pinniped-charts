@@ -1,0 +1,30 @@
+#! Copyright 2020-2021 the Pinniped contributors. All Rights Reserved.
+#! SPDX-License-Identifier: Apache-2.0
+
+#@data/values
+---
+app_name: pinniped-supervisor
+namespace: pinniped-supervisor
+into_namespace:
+custom_labels: {}
+replicas: 2
+image_repo: projects.registry.vmware.com/pinniped/pinniped-server
+image_digest: #! e.g. sha256:f3c4fdfd3ef865d4b97a1fd295d94acc3f0c654c46b6f27ffad5cf80216903c8
+image_tag: latest
+image_pull_dockerconfigjson: #! e.g. {"auths":{"https://registry.example.com":{"username":"USERNAME","password":"PASSWORD","auth":"BASE64_ENCODED_USERNAME_COLON_PASSWORD"}}}
+service_http_clusterip_port: 8080 #! when specified, creates a ClusterIP Service with this `port` value, with port 8080 as its `targetPort`; e.g. 8443
+service_https_clusterip_port: #! when specified, creates a ClusterIP Service with this `port` value, with port 8443 as its `targetPort`; e.g. 8443
+service_http_nodeport_port: 8080 #! when specified, creates a NodePort Service with this `port` value, with port 8080 as its `targetPort`; e.g. 31234
+service_http_nodeport_nodeport: #! the `nodePort` value of the NodePort Service, optional when `service_http_nodeport_port` is specified; e.g. 31234
+service_https_nodeport_port: #! when specified, creates a NodePort Service with this `port` value, with port 8443 as its `targetPort`; e.g. 31243
+service_https_nodeport_nodeport: #! the `nodePort` value of the NodePort Service, optional when `service_http_nodeport_port` is specified; e.g. 31243
+service_http_loadbalancer_port: 8080 #! when specified, creates a LoadBalancer Service with this `port` value, with port 8080 as its `targetPort`; e.g. 8443
+service_https_loadbalancer_port: #! when specified, creates a LoadBalancer Service with this `port` value, with port 8443 as its `targetPort`; e.g. 8443
+service_loadbalancer_ip: #! e.g. 1.2.3.4
+log_level: #! By default, when this value is left unset, only warnings and errors are printed. There is no way to suppress warning and error logs.
+run_as_user: 65532 #! run_as_user specifies the user ID that will own the process, see the Dockerfile for the reasoning behind this choice
+run_as_group: 65532 #! run_as_group specifies the group ID that will own the process, see the Dockerfile for the reasoning behind this choice
+api_group_suffix: pinniped.dev
+https_proxy: #! e.g. http://proxy.example.com
+no_proxy: "$(KUBERNETES_SERVICE_HOST),169.254.169.254,127.0.0.1,localhost,.svc,.cluster.local" #! do not proxy Kubernetes endpoints
+endpoints: 

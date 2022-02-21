@@ -1,0 +1,402 @@
+#!/usr/bin/env bash
+
+# -------------------------------------------------------------------------------------------------
+# To be clear, this shell script is grotesque. It's useful for trying to produce Helm charts from 
+# the Pinniped ytt resources and if it ends up being used repeatedly as the means to generate the
+# charts I'll clean it up. If I end up taking a generated version and carry on updating it 
+# independently of the ytt resources then it can be tossed so I'm not spending 
+# a lot of time on elegance here.
+# -------------------------------------------------------------------------------------------------
+# ytt uber manifest:  ytt+values
+# ytt manifests: kubectl-splice of ytt uber manifest
+# helm templates: ytt manifests + mutation
+# helm manifests: helm templates + values
+# dyff of ytt manifests vs helm manifests: they should be canonically identical
+
+pinnipedVersion="$(git --git-dir ../pinniped/.git describe --tags | sed 's/^v//')"
+chartVersion="0.0.$(cat VERSION | tr -d '\n')"
+basedir=${PWD}
+target="${basedir}/target"
+source="${basedir}/source"
+charts="${basedir}/charts"
+common="${source}/common"
+templatesYtt="templates.ytt"
+templatesRendered="templates.helm"
+crdTemplates="crds.helm"
+
+[ ! -d ../pinniped ] && echo && echo "You must have pinniped checked out in ../pinniped. Clone https://github.com/vmware-tanzu/pinniped.git into ../pinniped and try again." && echo && exit
+
+kubesplit="kubectl-slice"
+yq="yq"
+ytt="ytt"
+helm="helm"
+
+[ -d ${target} ] && rm -rf ${target} && mkdir -p ${target}
+[ -d ${charts} ] && rm -rf ${charts}
+
+function yqr () {
+  path=${1}
+  replace=${2}
+  file=${3}
+  ${yq} e -i "${path} = \"${replace}\"" ${file}
+}
+
+function sq () {
+  for yaml in $(ls *.yaml); do
+    sed -e "s/\'{{/{{/" -e "s/}}'/}}/" ${yaml} > tmp
+    mv tmp ${yaml}
+  done
+}
+
+# -------------------------------------------------------------------------------------------------
+# Local User Authenticator
+# -------------------------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Generating pinniped-local-user-authenticator chart"
+echo "--------------------------------------------------------------------------------------------"
+echo
+
+localUserAuthenticator="pinniped-local-user-authenticator"
+localUserAuthenticatorFile="install-local-user-authenticator.yaml"
+localUserAuthenticatorDeployment="deployment-local-user-authenticator.yaml"
+localUserAuthenticatorNamespace="local-user-authenticator"
+mkdir -p ${target}/${localUserAuthenticator}
+# Generate the uber manifest from the pinniped/deploy/local-user-authenticator directory
+uberYtt="${target}/${localUserAuthenticatorFile}"
+echo ">>> Rendering ytt templates for ${localUserAuthenticator} ..."
+${ytt} --file ../pinniped/deploy/local-user-authenticator > ${uberYtt}
+# Split the uber manifest
+echo ">>> Splitting ytt templates for ${localUserAuthenticator} ..."
+${kubesplit} --input-file=${uberYtt} --output-dir=${charts}/${localUserAuthenticator}/templates
+cp -r ${source}/${localUserAuthenticator} ${charts}
+${yq} eval -i ".appVersion = \"${pinnipedVersion}\"" ${charts}/${localUserAuthenticator}/Chart.yaml
+${yq} eval -i ".version = \"${chartVersion}\"" ${charts}/${localUserAuthenticator}/Chart.yaml
+cd ${charts}/${localUserAuthenticator}
+cp ${common}/.helmignore .
+rm -rf target
+cp -r templates ${templatesYtt}
+# Modify resources to be helm templates
+cd templates
+sed -e 's/@NAME@/local-user-authenticator/' ${common}/_helpers.tpl > _helpers.tpl
+rm -f namespace-local-user-authenticator.yaml
+for yaml in $(ls *.yaml); do
+  # Remove all pinniped-concierge namespace references in resources that contain them
+  yqr ".metadata.namespace" "{{ .Release.Namespace }}" ${yaml}
+done
+#
+# Deployment
+#
+yqr '.spec.replicas' '{{ .Values.deployment.replicas }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.deployment.securityContext.runAsUser }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.deployment.securityContext.runAsGroup }}' ${localUserAuthenticatorDeployment}
+yqr '.spec.template.metadata.labels' '{{ include \"labels\" .Values | nindent 8 }}' ${localUserAuthenticatorDeployment}
+sq
+cp ${common}/image-pull-secret.yaml .
+cd ..
+echo ">>> Rendering helm templates for ${localUserAuthenticator} ..."
+${helm} template --output-dir ${templatesRendered} --namespace ${localUserAuthenticatorNamespace} .
+mv ${templatesRendered}/${localUserAuthenticator}/templates/*.yaml ${templatesRendered}
+rm -rf ${templatesRendered}/${localUserAuthenticator}
+rm -f ${templatesYtt}/namespace*.yaml
+mv ${templatesRendered} ${target}/${localUserAuthenticator}
+mv ${templatesYtt} ${target}/${localUserAuthenticator}
+cd ${basedir}
+# -------------------------------------------------------------------------------------------------
+# Concierge
+# -------------------------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Generating pinniped-concierge chart"
+echo "--------------------------------------------------------------------------------------------"
+echo
+
+concierge="pinniped-concierge"
+conciergeFile="install-pinniped-concierge.yaml"
+conciergeDeployment="deployment-pinniped-concierge.yaml"
+conciergeConfigMap="configmap-pinniped-concierge-config.yaml"
+conciergeCredentialIssuer="credentialissuer-pinniped-concierge-config.yaml"
+conciergeNamespace="${concierge}"
+mkdir -p ${target}/${concierge}
+
+# Generate the uber manifest from the pinniped/deploy/concierge directory
+uberYtt="${target}/${conciergeFile}"
+echo ">>> Rendering helm templates for ${concierge} ..."
+${ytt} --file ../pinniped/deploy/concierge > ${uberYtt}
+# Split the uber manifest
+echo ">>> Splitting ytt templates for ${concierge} ..."
+${kubesplit} --input-file=${uberYtt} --output-dir=${charts}/${concierge}/templates
+cp -r ${source}/${concierge} ${charts}
+${yq} eval -i ".appVersion = \"${pinnipedVersion}\"" ${charts}/${concierge}/Chart.yaml
+${yq} eval -i ".version = \"${chartVersion}\"" ${charts}/${concierge}/Chart.yaml
+mkdir ${charts}/${concierge}/crds
+cd ${charts}/${concierge}
+cp ${common}/.helmignore  .
+rm -rf target
+cp -r templates ${templatesYtt}
+# Modify resources to be helm templates
+cd templates
+sed -e 's/@NAME@/pinniped-concierge/' ${common}/_helpers.tpl > _helpers.tpl
+# These are a copy of the CRDs without templating
+cp customresourcedefinition*.yaml ../crds
+rm -f namespace-pinniped-concierge.yaml
+for yaml in $(ls *.yaml); do
+  # Remove all pinniped-concierge namespace references in resources that contain them
+  ${yq} eval -i 'select(.metadata.namespace == "pinniped-concierge").metadata.namespace = "{{ .Release.Namespace }}"' ${yaml}
+  ${yq} eval -i 'select(.kind == "APIService").spec.service.namespace = "{{ .Release.Namespace }}"' ${yaml}
+  ${yq} eval -i '(select(.kind == "ClusterRoleBinding" or .kind == "RoleBinding").subjects[] | select(.kind == "ServiceAccount").namespace) = "{{ .Release.Namespace }}"' ${yaml}
+  yqr '.metadata.labels' '{{ include \"labels\" .Values | nindent 4 }}' ${yaml}
+done
+#
+# Deployment
+#
+yqr '.spec.replicas' '{{ .Values.deployment.replicas }}' ${conciergeDeployment}
+yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${conciergeDeployment}
+yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${conciergeDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.deployment.securityContext.runAsUser }}' ${conciergeDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.deployment.securityContext.runAsGroup }}' ${conciergeDeployment}
+yqr '.spec.template.metadata.labels' '{{ include \"deploymentLabels\" .Values | nindent 8 }}' ${conciergeDeployment}
+#
+# ConfigMap
+#
+# The config map is a bit messy. The pinniped.yaml configuration is a string element instead of inline yaml in the released version which 
+# makes it hard to read and substitute values into. This is meh, but it works.
+#
+export config="$(${yq} e '.data."pinniped.yaml"' ${conciergeConfigMap} | sed '/^[[:space:]]*$/d')"
+${yq} eval -i '.data."pinniped.yaml" = env(config)' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".discovery.url' '{{ .Values.config.discovery.url }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".logLevel' '{{ .Values.config.logLevel }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".api.servingCertificate.durationSeconds' '{{ .Values.config.api.servingCertificate.durationSeconds | int }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".api.servingCertificate.renewBeforeSeconds' '{{ .Values.config.api.servingCertificate.renewBeforeSeconds | int }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".apiGroupSuffix' '{{ .Values.config.apiGroupSuffix }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".labels' '{{ include \"labels\" .Values | nindent 6 }}' ${conciergeConfigMap}
+yqr '.data."pinniped.yaml".kubeCertAgent.image' '{{ template \"image\" .Values.image }}' ${conciergeConfigMap}
+sed 's/pinniped.yaml\:/pinniped.yaml\: |/' ${conciergeConfigMap} > tmp; mv tmp ${conciergeConfigMap}
+#
+# CredentialsIssuer / ImpersonationProxy
+#
+yqr '.spec.impersonationProxy.mode' '{{ .Values.credentialIssuer.impersonationProxy.mode }}' ${conciergeCredentialIssuer}
+yqr '.spec.impersonationProxy.service.type' '{{ .Values.credentialIssuer.impersonationProxy.service.type }}' ${conciergeCredentialIssuer}
+yqr '.spec.impersonationProxy.service.annotations' '{{ include \"nindent8\" .Values.credentialIssuer.impersonationProxy.service.annotations }}' ${conciergeCredentialIssuer}
+sq
+cp ${common}/image-pull-secret.yaml .
+cd ..
+mkdir -p ${target}/pinniped-concierge/${crdTemplates}
+mv templates/customresourcedefinition*.yaml ${target}/pinniped-concierge/${crdTemplates}
+echo ">>> Rendering helm templates for ${concierge} ..."
+${helm} template --output-dir ${templatesRendered} --namespace ${conciergeNamespace} .
+mv ${templatesRendered}/${concierge}/templates/*.yaml ${templatesRendered}
+rm -rf ${templatesRendered}/${concierge}
+rm -f ${templatesYtt}/namespace*.yaml
+mv ${templatesRendered} ${target}/${concierge}
+mv ${templatesYtt} ${target}/${concierge}
+cd ${basedir}
+# -------------------------------------------------------------------------------------------------
+# Supervisor
+# -------------------------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Generating pinniped-supervisor chart"
+echo "--------------------------------------------------------------------------------------------"
+echo
+
+supervisor="pinniped-supervisor"
+supervisorFile="install-pinniped-supervisor.yaml"
+supervisorDeployment="deployment-pinniped-supervisor.yaml"
+supervisorConfigMap="configmap-pinniped-supervisor-static-config.yaml"
+supervisorNamespace="${supervisor}"
+mkdir -p ${target}/${supervisor}
+
+# Generate the uber manifest from the pinniped/deploy/supervisor directory
+cd ${source}/pinniped-supervisor
+rm -rf target > /dev/null 2>&1 ; mkdir target
+cp ../../../pinniped/deploy/supervisor/* target
+cp values-ytt.yaml target
+cd target
+rm values.yaml
+uberYtt="${target}/${supervisorFile}"
+echo ">>> Rendering helm templates for ${supervisor} ..."
+${ytt} --file . > ${uberYtt}
+cd ${basedir}
+# Split the uber manifest
+echo ">>> Splitting ytt templates for ${supervisor} ..."
+${kubesplit} --input-file=${uberYtt} --output-dir=${charts}/${supervisor}/templates
+cp -r ${source}/${supervisor} ${charts}
+${yq} eval -i ".appVersion = \"${pinnipedVersion}\"" ${charts}/${supervisor}/Chart.yaml
+${yq} eval -i ".version = \"${chartVersion}\"" ${charts}/${supervisor}/Chart.yaml
+mkdir ${charts}/${supervisor}/crds
+cd ${charts}/${supervisor}
+cp ${common}/.helmignore  .
+rm -rf values-ytt.yaml
+rm -rf target
+cp -r templates ${templatesYtt}
+# Modify resources to be helm templates
+cd templates
+sed -e 's/@NAME@/pinniped-supervisor/' ${common}/_helpers.tpl > _helpers.tpl
+# These are a copy of the CRDs without templating
+cp customresourcedefinition*.yaml ../crds
+rm -f namespace-pinniped-supervisor.yaml
+for yaml in $(ls *.yaml); do
+  # Remove all pinniped-supervisor namespace references in resources that contain them
+  ${yq} eval -i '.metadata.namespace = "{{ .Release.Namespace }}"' ${yaml}
+  ${yq} eval -i '(select(.kind == "RoleBinding").subjects[] | select(.kind == "ServiceAccount").namespace) = "{{ .Release.Namespace }}"' ${yaml}
+  yqr '.metadata.labels' '{{ include \"labels\" .Values | nindent 4 }}' ${yaml}
+done
+#
+# Deployment
+#
+yqr '.spec.replicas' '{{ .Values.deployment.replicas }}' ${supervisorDeployment}
+yqr '.spec.template.spec.containers[0].image' '{{ template \"image\" .Values.image }}' ${supervisorDeployment}
+yqr '.spec.template.spec.containers[0].imagePullPolicy' '{{ .Values.image.pullPolicy }}' ${supervisorDeployment}
+yqr '.spec.template.spec.securityContext.runAsUser' '{{ .Values.deployment.securityContext.runAsUser }}' ${supervisorDeployment}
+yqr '.spec.template.spec.securityContext.runAsGroup' '{{ .Values.deployment.securityContext.runAsGroup }}' ${supervisorDeployment}
+yqr '.spec.template.metadata.labels' '{{ include \"deploymentLabels\" .Values | nindent 8 }}' ${supervisorDeployment}
+#
+# ConfigMap
+#
+sed -e 's/pinniped.yaml: |/pinniped.yaml: /' ${supervisorConfigMap} > tmp; mv tmp ${supervisorConfigMap}
+yqr '.data."pinniped.yaml".apiGroupSuffix' '{{ .Values.config.apiGroupSuffix }}' ${supervisorConfigMap}
+yqr '.data."pinniped.yaml".labels' '{{ include \"labels\" .Values | nindent 6 }}' ${supervisorConfigMap}
+sed -e 's/pinniped.yaml:/pinniped.yaml: |/' ${supervisorConfigMap} > tmp; mv tmp ${supervisorConfigMap}
+#
+# Service: generate a single file with the various service options which are controlled by configuration in the values.yaml
+#
+serviceClusterIp=service-pinniped-supervisor-clusterip.yaml
+yqr '.spec.ports[0].name' '{{ .Values.service.clusterIP.name }}' ${serviceClusterIp}
+yqr '.spec.ports[0].protocol' '{{ .Values.service.clusterIP.protocol }}' ${serviceClusterIp}
+yqr '.spec.ports[0].port' '{{ .Values.service.clusterIP.port }}' ${serviceClusterIp}
+yqr '.spec.ports[0].targetPort' '{{ .Values.service.clusterIP.targetPort }}' ${serviceClusterIp}
+serviceNodePort=service-pinniped-supervisor-nodeport.yaml
+yqr '.spec.ports[0].name' '{{ .Values.service.nodePort.name }}' ${serviceNodePort}
+yqr '.spec.ports[0].protocol' '{{ .Values.service.nodePort.protocol }}' ${serviceNodePort}
+yqr '.spec.ports[0].port' '{{ .Values.service.nodePort.port }}' ${serviceNodePort}
+yqr '.spec.ports[0].targetPort' '{{ .Values.service.nodePort.targetPort }}' ${serviceNodePort}
+yqr '.spec.ports[0].nodePort' '{{ .Values.service.nodePort.nodePort }}' ${serviceNodePort}
+serviceLoadBalancer=service-pinniped-supervisor-loadbalancer.yaml
+yqr '.spec.ports[0].name' '{{ .Values.service.loadBalancer.name }}' ${serviceLoadBalancer}
+yqr '.spec.ports[0].protocol' '{{ .Values.service.loadBalancer.protocol }}' ${serviceLoadBalancer}
+yqr '.spec.ports[0].port' '{{ .Values.service.loadBalancer.port }}' ${serviceLoadBalancer}
+yqr '.spec.ports[0].targetPort' '{{ .Values.service.loadBalancer.targetPort }}' ${serviceLoadBalancer}
+service="service-pinniped-supervisor.yaml"
+echo '{{- if .Values.service.clusterIP.enabled }}' >> ${service}
+cat ${serviceClusterIp} >> ${service}
+echo '{{- end }}' >> ${service}
+echo '{{- if .Values.service.nodePort.enabled }}' >> ${service}
+echo '{{- if .Values.service.clusterIP.enabled }}' >> ${service}
+echo '---' >> ${service}
+echo '{{- end }}' >> ${service}
+cat ${serviceNodePort} >> ${service}
+read -r -d '' testPort <<EOF
+{{- if .Values.service.nodePort.testPort }}
+    - name: {{ .Values.service.nodePort.testPort.name }}
+      protocol: {{ .Values.service.nodePort.testPort.protocol }}
+      port: {{ .Values.service.nodePort.testPort.port }}
+      targetPort: {{ .Values.service.nodePort.testPort.targetPort }}
+      nodePort: {{ .Values.service.nodePort.testPort.nodePort }}
+{{- end }}
+EOF
+echo "${testPort}" >> ${service}
+echo '{{- end }}' >> ${service}
+echo '{{- if .Values.service.loadBalancer.enabled }}' >> ${service}
+cat ${serviceLoadBalancer} >> ${service}
+echo '{{- end }}' >> ${service}
+rm ${serviceClusterIp}
+rm ${serviceNodePort}
+rm ${serviceLoadBalancer}
+sq
+cp ${common}/image-pull-secret.yaml .
+cd ..
+mkdir -p ${target}/pinniped-supervisor/${crdTemplates}
+mv templates/customresourcedefinition*.yaml ${target}/pinniped-supervisor/${crdTemplates}
+echo ">>> Rendering helm templates for ${supervisor} ..."
+${helm} template --output-dir ${templatesRendered} --namespace ${supervisorNamespace} .
+cp crds/*.yaml ${templatesRendered}
+mv ${templatesRendered}/${supervisor}/templates/*.yaml ${templatesRendered}
+rm -rf ${templatesRendered}/${supervisor}
+rm -f ${templatesYtt}/namespace*.yaml
+mv ${templatesRendered} ${target}/${supervisor}
+mv ${templatesYtt} ${target}/${supervisor}
+cd ${basedir}
+
+# -------------------------------------------------------------------------------------------------
+# Helm Lint
+# -------------------------------------------------------------------------------------------------
+echo
+helm lint ${charts}/${localUserAuthenticator}
+echo
+helm lint ${charts}/${concierge}
+echo
+helm lint ${charts}/${supervisor}
+
+# Dyff currently doesn't canonically compare data elements in a configmap, so we'll extract
+# them and give dyff something it can compare.
+function pinnipedConfigDiff () {
+  app=${1}
+  helm=${2}
+  ytt=${3}
+  configHelm="${app}-config-helm.yaml"
+  configYtt="${app}-config-ytt.yaml"
+  yq e '.data."pinniped.yaml"' ${helm} > ${configHelm}
+  yq e '.data."pinniped.yaml"' ${ytt} > ${configYtt}
+  dyff between ${configHelm} ${configYtt}
+}
+
+# -------------------------------------------------------------------------------------------------
+# Dyff
+# -------------------------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Dyffing pinniped-local-user-authenticator"
+echo "--------------------------------------------------------------------------------------------"
+echo
+cd ${target}/${localUserAuthenticator}
+for file in $(ls ${templatesRendered}); do
+  helm="${templatesRendered}/${file}"
+  ytt="${templatesYtt}/${file}"
+  dyff between ${helm} ${ytt}
+done
+cd -
+
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Dyffing pinniped-concierge"
+echo "--------------------------------------------------------------------------------------------"
+echo
+cd ${target}/${concierge}
+for file in $(ls ${templatesRendered}); do
+  helm="${templatesRendered}/${file}"
+  ytt="${templatesYtt}/${file}"
+  if [ "${file}" = "configmap-pinniped-concierge-config.yaml" ]; then
+    pinnipedConfigDiff "pinniped-concierge" ${helm} ${ytt}
+  else
+    dyff between ${helm} ${ytt}
+  fi
+done
+cd -
+
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Dyffing pinniped-supervisor"
+echo "--------------------------------------------------------------------------------------------"
+echo
+cd ${target}/${supervisor}
+for file in $(ls ${templatesRendered}); do
+  helm="${templatesRendered}/${file}"
+  ytt="${templatesYtt}/${file}"
+  if [ "${file}" = "configmap-pinniped-supervisor-static-config.yaml" ]; then
+    pinnipedConfigDiff "pinniped-supervisor" ${helm} ${ytt}
+  else
+    if [ "${file}" = "service-pinniped-supervisor.yaml" ]; then
+      dyff between ${templatesRendered}/${file} ${templatesYtt}/service-pinniped-supervisor-clusterip.yaml
+    else
+      dyff between ${helm} ${ytt}
+    fi
+  fi
+done
+cd -
+
+echo
+echo "If you don't see any colored diffs above, the ytt generated resources and helm generated resources are canonically identical."
+echo

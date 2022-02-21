@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+dir0=${1:-/tmp/concierge}
+dir1=${2:-/Users/jvanzyl/js/ck8s/pinniped-charts/target/lit/pinniped-concierge/templates}
+
+dir0=${1:-/tmp/supervisor}
+dir1=${2:-/Users/jvanzyl/js/ck8s/pinniped-charts/target/lit/pinniped-supervisor/templates}
+
+cd ${dir0}
+for yaml in $(ls *.yaml); do
+  dyff between ${yaml} ${dir1}/${yaml}
+done

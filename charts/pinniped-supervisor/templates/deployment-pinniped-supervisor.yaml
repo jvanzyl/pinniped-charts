@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pinniped-supervisor
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "labels" .Values | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: pinniped-supervisor
+  template:
+    metadata:
+      labels: {{ include "deploymentLabels" .Values | nindent 8 }}
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.deployment.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.deployment.securityContext.runAsGroup }}
+      serviceAccountName: pinniped-supervisor
+      containers:
+        - name: pinniped-supervisor
+          image: {{ template "image" .Values.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - pinniped-supervisor
+            - /etc/podinfo
+            - /etc/config/pinniped.yaml
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: podinfo
+              mountPath: /etc/podinfo
+              readOnly: true
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8443
+              protocol: TCP
+          env: []
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 2
+            timeoutSeconds: 15
+            periodSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 2
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: config-volume
+          configMap:
+            name: pinniped-supervisor-static-config
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: labels
+                fieldRef:
+                  fieldPath: metadata.labels
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
+              - path: name
+                fieldRef:
+                  fieldPath: metadata.name
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    deployment.pinniped.dev: supervisor
+                topologyKey: kubernetes.io/hostname

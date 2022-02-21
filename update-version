@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+version="$(cat VERSION | tr -d '\n')"
+version=$((version+1))
+echo ${version} > VERSION
+./generate-charts
+git add .
+git commit -m "Update charts"
+git tag "0.0.${version}"
+git push && git push --tags

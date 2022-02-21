@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pinniped-supervisor-static-config
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "labels" .Values | nindent 4 }}
+data:
+  pinniped.yaml: |
+    apiGroupSuffix: {{ .Values.config.apiGroupSuffix }}
+    names:
+      defaultTLSCertificateSecret: pinniped-supervisor-default-tls-certificate
+    labels: {{ include "labels" .Values | nindent 6 }}
