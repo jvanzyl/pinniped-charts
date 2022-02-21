@@ -1,0 +1,33 @@
+apiVersion: v1
+entries:
+  pinniped-concierge:
+  - apiVersion: v2
+    appVersion: 0.14.0-55-g6491742c
+    created: "2022-02-21T00:39:10.382633997Z"
+    description: A Helm chart for Pinniped Concierge
+    digest: 91cee35cdb97401f6f3856d966d5480ca838a71cb5788e49b3191a6455136ffe
+    name: pinniped-concierge
+    urls:
+    - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-concierge-0.0.15/pinniped-concierge-0.0.15.tgz
+    version: 0.0.15
+  pinniped-local-user-authenticator:
+  - apiVersion: v2
+    appVersion: 0.14.0-55-g6491742c
+    created: "2022-02-21T00:39:10.572561056Z"
+    description: A Helm chart for Pinniped Local User Authenticator
+    digest: 1e8b5c63d695e3c678d3c2e4864e84fc06708a86a7f2dc9c5091db8af24689cf
+    name: pinniped-local-user-authenticator
+    urls:
+    - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-local-user-authenticator-0.0.15/pinniped-local-user-authenticator-0.0.15.tgz
+    version: 0.0.15
+  pinniped-supervisor:
+  - apiVersion: v2
+    appVersion: 0.14.0-55-g6491742c
+    created: "2022-02-21T00:39:10.778694039Z"
+    description: A Helm chart for Pinniped Supervisor
+    digest: 69ceca51598c608460d482deb6646c9039db8575373467a9ea30825c367a796e
+    name: pinniped-supervisor
+    urls:
+    - https://github.com/jvanzyl/pinniped-charts/releases/download/pinniped-supervisor-0.0.15/pinniped-supervisor-0.0.15.tgz
+    version: 0.0.15
+generated: "2022-02-21T00:39:10.778712839Z"
